@@ -170,8 +170,9 @@ authoritative signatures still come from `info 'name`.
 
 ## What is NOT in v0.10.0
 
-- **Corrected.** There is no `reader` builtin in v0.10.0 (the render/template
-  evaluation concern above covers the real risk; do not look for a `reader`
-  keyword).
+- **Corrected (typo).** There is no `reader` builtin in v0.10.0 — "reader" is a
+  misspelling of **`render`**, which is the one that can evaluate interpolated
+  `|...|` content (see the template-safety section above). Do not look for a
+  `reader` keyword; the risk lives in `render`/`~"..."`.
 - Always confirm a suspected keyword with `symbols | keys | print` before using
   it.

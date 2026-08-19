@@ -58,7 +58,15 @@ Inside the REPL or an `.art` file:
 ```arturo
 info 'read                 ; formatted signature, attributes, returns
 meta: info.get 'read       ; same metadata as a dictionary
+print meta\example         ; the OFFICIAL runnable example, available locally
 ```
+
+**All of this is local and offline.** Once a runtime is installed, `info`,
+`info.get`, and the `example` field give you the usage, options, return type,
+**and a runnable example for every keyword without any internet access.** This
+is the fastest way to write correct code: query the keyword, read its
+`example`, adapt it. For symbols lists use `symbols | keys | print`. (When no
+runtime exists, `./bin/ahelp -s TERM` still resolves the doc URL offline.)
 
 If Arturo is absent, or one command should provide runtime help plus the official URL:
 

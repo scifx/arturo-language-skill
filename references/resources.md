@@ -2,6 +2,27 @@
 
 Verified 2026-08-19. Stable release shown by the official site: **0.10.0 “Arizona Bark”**.
 
+## Quick navigation map (find the right place fast)
+
+Use this to jump straight to the source for a given need — no searching.
+
+| What you need | Where to look | Link |
+|---|---|---|
+| Run/local help for any symbol | `info 'x`, `info.get 'x \| get 'example` (local, offline) | see `practical-rules.md` |
+| Download / install Arturo | Official site or Releases | `https://arturo-lang.io/` · `https://github.com/arturo-lang/arturo/releases` |
+| 15-minute language tour | In a nutshell | `https://arturo-lang.io/documentation/in-a-nutshell` |
+| Language design & philosophy | Language reference | `https://arturo-lang.io/documentation/language` |
+| CLI flags & package commands | Command line | `https://arturo-lang.io/documentation/command-line` |
+| Every keyword with examples | Standard library index | `https://arturo-lang.io/documentation/library` |
+| Module page (e.g. Core) | library + lowercased module | `https://arturo-lang.io/documentation/library/core` |
+| 100+ worked examples | Examples browser | `https://arturo-lang.io/documentation/examples` |
+| Rosetta Code idioms (real `.art`) | examples repo, `src/rosetta/` | `https://github.com/arturo-lang/examples/tree/main/src/rosetta` |
+| Language/VM/library source | GitHub repo | `https://github.com/arturo-lang/arturo` |
+| Syntax + full word-list cheat sheet (for AI training) | Dr. Kameleon's gist | `https://gist.github.com/drkameleon/93331d1da47493effaa3b7f7c562ed62` |
+| Online playground (no install) | Playground | `https://arturo-lang.io/playground/` |
+
+The **AI training material gist** (`https://gist.github.com/drkameleon/93331d1da47493effaa3b7f7c562ed62`) is the single best offline summary: it contains the full syntax overview plus a compact word-list reference. Download it once and keep it with the skill for fast lookups.
+
 ## Canonical sites
 
 | Purpose | URL |
