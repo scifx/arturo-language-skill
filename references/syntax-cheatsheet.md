@@ -122,6 +122,7 @@ multi: {
 verbatim: {:
   preserved verbatim
 :}
+regex: {/.../}                 ; regex literal — plain /.../ is division in this build
 print ~"Hello |name|, 2+2 = |2+2|"
 print ["Hello" name]         ; evaluates block and space-joins
 print upper s
