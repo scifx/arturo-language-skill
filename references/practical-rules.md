@@ -23,26 +23,29 @@ the official example(s) — extremely useful for writing correct code locally.
 
 ## Installation
 
-**Preferred:** the maintainer's prebuilt binary repo `scifx/arturo-bin`
-(sha256-verified, with a missing-lib report):
+**Preferred: use the binary bundled in this repo — no download needed.**
 
 ```bash
-scripts/get-arturo.sh
+./bin/arturo --version                 # Full build (big ints, HTTPS, SQLite, regex, parsers, crypto)
+./bin/arturo-mini --version            # Mini build (zero extra deps)
+export ARTURO_BIN="$PWD/bin/arturo"
 ```
 
-Fallback official installer:
+**Verified.** The bundled binaries (0.10.1-dev+43, built from
+`scifx/Arturo-Future`) run on glibc ≥ 2.36 — verified in this sandbox (Debian
+12): version, big-int arithmetic, floats, SQLite, HTTPS (`request` → 200),
+regex, crypto all exercised. Fallback official installer:
 
 ```bash
 curl -sSL https://get.arturo-lang.io | sh      # latest stable
 curl -sSL https://get.arturo-lang.io/latest | sh  # nightly preview
 ```
 
-**Verified.** Pre-built binaries are also downloadable from the site/Releases
-(no install needed, just unzip and run). macOS: `brew install arturo`; Arch
-(AUR): `yay -S arturo`. There is **no** official Debian/Ubuntu `apt install
-arturo`. Dependency requirements of the scifx/arturo-bin binary (glibc ≥ 2.38,
-libstdc++ ≥ GLIBCXX_3.4.32, GUI libs for the Full build) are in
-`references/runtime-dependencies.md`.
+Pre-built binaries are also downloadable from the site/Releases (no install
+needed, just unzip and run). macOS: `brew install arturo`; Arch (AUR):
+`yay -S arturo`. There is **no** official Debian/Ubuntu `apt install arturo`.
+Dependency requirements of the bundled binaries (system libgmp/libmpfr/libssl
+for the Full build, none for Mini) are in `references/runtime-dependencies.md`.
 
 ## Language model (right-to-left, arity-driven)
 

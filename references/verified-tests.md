@@ -38,35 +38,35 @@ The Mini executable launched and reported:
 
 `arturo 0.10.0 Arizona Bark (amd64/linux)`
 
-## 2b. scifx/arturo-bin binary verification (preferred runtime source)
+## 2b. Bundled binary verification (preferred runtime source)
 
-Fetched 2026-08-19 from `https://github.com/scifx/arturo-bin` (single file
-`arturo`, commit `cc0849a870c6561b01c8d48e8216b4fe608723d0`). Verified via
-three independent routes (git clone, codeload tarball, GitHub API git blob),
-all byte-identical:
+**This repo now ships the runtime** — `bin/arturo` (Full, no UI) and
+`bin/arturo-mini` (Mini), both built 2026-08-19 from `scifx/Arturo-Future`
+(commit `933420d`, version `0.10.1-dev+43`) with Nim 2.2.6 + GCC 12.2 on
+Debian 12 (`--release`, LTO, strip, mimalloc):
 
-- SHA-256: `73bda27194bf0ae0dcc89550cfd590313f6e1c586f0f255e01e0b2b82388d3cb`
-- Size: 12,524,488 bytes; ELF 64-bit x86-64, dynamically linked
-- Build variant: **Full** (NEEDED includes `libwebkit2gtk-4.1.so.0`,
-  `libjavascriptcoregtk-4.1.so.0`, `libgtk-3.so.0`, `libgdk-3.so.0`)
-- Version floors from symbol table: `GLIBC_2.38` (max), `GLIBCXX_3.4.32` (max)
+- `bin/arturo`: SHA-256 `b7597e9d5ea3d0c0229e37c936518b12c0d69cb9ffe514fad63a9e08f2b0a38d`, 6,519,792 bytes — Full build minus the UI stack (no WEBVIEW/DIALOGS/CLIPBOARD; GMP/ssl/SQLITE/PARSERS/DOCGEN kept)
+- `bin/arturo-mini`: SHA-256 `78fbbf467528a8b7e2cc83d5015f5d75c3c6165f7f188ef543b7bcae848705ad`, 5,200,088 bytes — Mini build, zero extra shared-lib deps
 
 Run attempt in this sandbox (Debian 12 bookworm, glibc 2.36, GCC 12):
 
 ```
-./arturo --version
-error while loading shared libraries: libwebkit2gtk-4.1.so.0:
-cannot open shared object file: No such file or directory   (exit 127)
+$ ./bin/arturo --version
+arturo 0.10.1-dev+43 (amd64/linux)
 ```
 
-`ldd` additionally reports `GLIBC_2.38` and `GLIBCXX_3.4.32` not found.
-**Conclusion: this Full binary cannot run on Debian 12** (glibc/libstdc++
-floors too new). Fixes: (a) run on Debian 13+/Ubuntu 23.10+/Fedora 39+/current
-Arch and install the GUI packages (`libwebkit2gtk-4.1-0`,
-`libjavascriptcoregtk-4.1-0`, `libgtk-3-0` on Debian/Ubuntu), or (b) have the
-maintainer upload a **Mini build** (`./build.nims --mode mini`, built on a
-glibc ≤ 2.36 host such as Debian 12), which drops the four GUI libraries and
-runs on Debian 12. Full matrix and package names: `references/runtime-dependencies.md`.
+`ldd bin/arturo` / `ldd bin/arturo-mini`: **no `not found` entries**. The
+Full build's runtime deps (`libgmp.so.10`, `libmpfr.so.6`, `libssl.so.3`,
+`libcrypto.so.3`, dlopen `libsqlite3.so.0`) are all standard on Debian 12+.
+Runtime-verified features of the Full build: big integers (`2^300`), MPFR
+floats (`sqrt 2.0`), SQLite (create/insert/select), **HTTPS** (`request` →
+status 200), PCRE regex, crypto hashes. Full matrix and rebuild notes:
+`references/runtime-dependencies.md`.
+
+Historical note: the earlier `scifx/arturo-bin` upload (Full build, SHA-256
+`73bda271...`, commit `cc0849a`) required glibc ≥ 2.38 + the webkit/GTK stack
+and could not launch on Debian 12 (exit 127). It is superseded by the bundled
+binaries above.
 
 ## 3. CLI compatibility matrix
 
@@ -288,10 +288,11 @@ python3 scripts/arturo_help.py '++'
 python3 scripts/arturo_help.py map --info --runtime /path/to/arturo
 ```
 
-`scripts/get-arturo.sh` was exercised end-to-end: fetch routes 1 (git clone),
-2 (codeload), and 4 (gh API blob) were each verified to produce the pinned
-SHA-256 `73bda271...`; the `--check-only` dependency report correctly listed
-the four missing GUI libraries and the two version floors on Debian 12.
+`scripts/get-arturo.sh` was exercised: with the bundled binaries present it
+uses `bin/arturo` with **no download** (installs to `~/.arturo/bin/arturo`,
+dependency report shows no missing libs on Debian 12); `--check-only` works
+on both bundled binaries. `bin/ahelp` auto-detects the bundled `bin/arturo`
+and returns real runtime `info` output.
 
 The shell helper requires POSIX `sh` and `awk`, auto-detects `arturo`, accepts `ARTURO_BIN`, and does not require Python. The Python helper uses `python3` through its environment shebang and accepts an explicit runtime path. Neither helper downloads or executes remote documentation. A native PowerShell counterpart exists at `bin/ahelp.ps1`; it was source-reviewed but not executed in this Linux sandbox because `pwsh` was unavailable.
 
@@ -304,7 +305,7 @@ The MCP server was smoke-tested with newline-delimited JSON-RPC requests for `in
 - Runtime help is authoritative for the installed build, but project-local definitions can shadow symbols. Test in a clean process when diagnosing built-ins.
 - The shell CSV reader relies on the current index schema and on the relevant fields not containing commas. It is intentionally simple and fast.
 - Windows without WSL/Git Bash may not run `bin/ahelp`; use `python3`/`py -3 scripts/arturo_help.py` or MCP.
-- Neither Full binary (official ZIP nor scifx/arturo-bin) could be launched in this Debian 12 sandbox — the official ZIP lacked `libwebkit2gtk-4.1.so.0`, and the scifx/arturo-bin Full build additionally requires glibc ≥ 2.38 / GLIBCXX ≥ 3.4.32 (see §2b). Full-only runtime claims remain documentation-derived here; Mini behavior is runtime-verified.
+- The old scifx/arturo-bin Full upload could not launch in this Debian 12 sandbox (needed glibc ≥ 2.38 + webkit/GTK; see §2b historical note). The bundled `bin/arturo` (no-UI Full) and `bin/arturo-mini` both **run and are runtime-verified** on Debian 12, including HTTPS/SQLite/big-int for the Full build.
 - Network, databases, sockets, UI, packaging, bundling, bytecode compilation, and cross-platform behavior were not comprehensively exercised.
 - Examples and Rosetta Code are secondary sources for idioms. They can target older language versions.
 - Generated documentation describes intended signatures but cannot guarantee environmental resources such as TLS libraries, GUI libraries, database drivers, file permissions, or open network ports.

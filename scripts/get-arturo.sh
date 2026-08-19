@@ -1,15 +1,16 @@
 #!/bin/sh
-# get-arturo.sh — fetch the Arturo runtime from scifx/arturo-bin (preferred
-# source), verify its SHA-256, and report any missing local libraries with
-# per-distro install hints.
+# get-arturo.sh — make the bundled Arturo runtime available and check its
+# local dependencies. The preferred runtime is ALREADY in this repo
+# (bin/arturo Full no-UI, bin/arturo-mini); this script installs one of them
+# onto $PATH and/or prints a per-distro missing-lib report.
 #
-# Preferred source of the runtime: https://github.com/scifx/arturo-bin
-# (maintainer-uploaded prebuilt binaries — the fastest reliable route).
+# If the bundled binaries are missing (e.g. fresh submodule clone without
+# binaries), it falls back to fetching from scifx/arturo-bin.
 #
 # Usage:
-#   scripts/get-arturo.sh                          # fetch+verify+dep-check; install to ~/.arturo/bin/arturo
+#   scripts/get-arturo.sh                              # use bundled bin/arturo; install to ~/.arturo/bin/arturo
+#   USE_MINI=1 scripts/get-arturo.sh                   # use bundled bin/arturo-mini
 #   ARTURO_DEST=/usr/local/bin/arturo scripts/get-arturo.sh
-#   ARTURO_SHA256=<new-sha256> scripts/get-arturo.sh   # when upstream updates the binary
 #   scripts/get-arturo.sh --check-only /path/to/arturo # just run the dependency check
 #
 # Requires only POSIX sh + common tools (curl or git, sha256sum/shasum, ldd).
@@ -27,6 +28,11 @@ if [ -f "$ROOT/config.env" ]; then
     . "$ROOT/config.env"
 fi
 
+BUNDLED=${ARTURO_BUNDLED:-"$ROOT/bin/arturo"}
+if [ "${USE_MINI:-0}" = "1" ]; then
+    BUNDLED="$ROOT/bin/arturo-mini"
+fi
+
 REPO_OWNER_REPO="scifx/arturo-bin"
 BRANCH="main"
 REPO_URL="https://github.com/${REPO_OWNER_REPO}.git"
@@ -34,9 +40,10 @@ CODELOAD_URL="https://codeload.github.com/${REPO_OWNER_REPO}/tar.gz/refs/heads/$
 RAW_URL="https://raw.githubusercontent.com/${REPO_OWNER_REPO}/${BRANCH}/arturo"
 TARBALL_DIR="${REPO_OWNER_REPO#*/}-${BRANCH}"
 
-# Pin for the Full (UI) build committed 2026-08-19 (commit cc0849a, 12,524,488 bytes).
-# Update ARTURO_SHA256 (env or config.env) when the maintainer uploads a new
-# binary — e.g. the Mini/no-UI build. See references/runtime-dependencies.md.
+# Fallback download pin: the binary currently in scifx/arturo-bin (2026-08-19,
+# glibc 2.38 Full build). This path is only used when the bundled binaries are
+# missing. Prefer the bundled bin/arturo / bin/arturo-mini (see
+# references/runtime-dependencies.md) — they run on Debian 12.
 PIN_SHA256=${ARTURO_SHA256:-73bda27194bf0ae0dcc89550cfd590313f6e1c586f0f255e01e0b2b82388d3cb}
 DEST=${ARTURO_DEST:-"$HOME/.arturo/bin/arturo"}
 
@@ -111,22 +118,26 @@ if [ "${1:-}" = "--check-only" ]; then
     exit 0
 fi
 
-echo "== Fetching Arturo runtime from $REPO_OWNER_REPO (preferred source)"
-TMPDIR_X=$(mktemp -d)
-trap 'rm -rf "$TMPDIR_X"' EXIT
-
-FETCHED=0
-# 1) git clone — works even where raw.githubusercontent.com is blocked
-if [ "$FETCHED" -eq 0 ] && command -v git >/dev/null 2>&1; then
-    echo "   route 1/4: git clone $REPO_URL"
-    if git clone --depth 1 --branch "$BRANCH" -q "$REPO_URL" "$TMPDIR_X/repo" 2>/dev/null \
-        && [ -f "$TMPDIR_X/repo/arturo" ]; then
-        cp "$TMPDIR_X/repo/arturo" "$TMPDIR_X/arturo"
-        FETCHED=1
+# Preferred: use the binary bundled in this repo — no download at all.
+if [ -f "$BUNDLED" ] && [ -x "$BUNDLED" ]; then
+    echo "== Using bundled runtime: $BUNDLED (no download needed)"
+    SRC=$BUNDLED
+else
+    echo "== Bundled runtime not found ($BUNDLED); fetching from $REPO_OWNER_REPO"
+    TMPDIR_X=$(mktemp -d)
+    trap 'rm -rf "$TMPDIR_X"' EXIT
+    FETCHED=0
+    # 1) git clone — works even where raw.githubusercontent.com is blocked
+    if [ "$FETCHED" -eq 0 ] && command -v git >/dev/null 2>&1; then
+        echo "   route 1/4: git clone $REPO_URL"
+        if git clone --depth 1 --branch "$BRANCH" -q "$REPO_URL" "$TMPDIR_X/repo" 2>/dev/null \
+            && [ -f "$TMPDIR_X/repo/arturo" ]; then
+            cp "$TMPDIR_X/repo/arturo" "$TMPDIR_X/arturo"
+            FETCHED=1
+        fi
     fi
-fi
-# 2) codeload tarball — also works in restricted sandboxes
-if [ "$FETCHED" -eq 0 ] && command -v curl >/dev/null 2>&1; then
+    # 2) codeload tarball — also works in restricted sandboxes
+    if [ "$FETCHED" -eq 0 ] && command -v curl >/dev/null 2>&1; then
     echo "   route 2/4: codeload tarball $CODELOAD_URL"
     if curl -fsSL "$CODELOAD_URL" -o "$TMPDIR_X/repo.tar.gz" 2>/dev/null \
         && tar -xzf "$TMPDIR_X/repo.tar.gz" -C "$TMPDIR_X" \
@@ -134,47 +145,48 @@ if [ "$FETCHED" -eq 0 ] && command -v curl >/dev/null 2>&1; then
         cp "$TMPDIR_X/$TARBALL_DIR/arturo" "$TMPDIR_X/arturo"
         FETCHED=1
     fi
-fi
-# 3) raw URL — on networks with unrestricted access
-if [ "$FETCHED" -eq 0 ] && command -v curl >/dev/null 2>&1; then
-    echo "   route 3/4: raw URL $RAW_URL"
-    if curl -fsSL "$RAW_URL" -o "$TMPDIR_X/arturo" 2>/dev/null; then FETCHED=1; fi
-fi
-# 4) GitHub API git blob via gh — needs gh CLI + auth, but survives raw/Codeload blocks
-if [ "$FETCHED" -eq 0 ] && command -v gh >/dev/null 2>&1; then
-    echo "   route 4/4: GitHub API git blob (gh)"
-    BLOB_SHA=$(gh api "repos/${REPO_OWNER_REPO}/contents/arturo" --jq '.sha' 2>/dev/null || true)
-    if [ -n "$BLOB_SHA" ] \
-        && gh api "repos/${REPO_OWNER_REPO}/git/blobs/${BLOB_SHA}" -H "Accept: application/vnd.github.raw" > "$TMPDIR_X/arturo" 2>/dev/null; then
-        FETCHED=1
     fi
-fi
+    # 3) raw URL — on networks with unrestricted access
+    if [ "$FETCHED" -eq 0 ] && command -v curl >/dev/null 2>&1; then
+        echo "   route 3/4: raw URL $RAW_URL"
+        if curl -fsSL "$RAW_URL" -o "$TMPDIR_X/arturo" 2>/dev/null; then FETCHED=1; fi
+    fi
+    # 4) GitHub API git blob via gh — needs gh CLI + auth, but survives raw/Codeload blocks
+    if [ "$FETCHED" -eq 0 ] && command -v gh >/dev/null 2>&1; then
+        echo "   route 4/4: GitHub API git blob (gh)"
+        BLOB_SHA=$(gh api "repos/${REPO_OWNER_REPO}/contents/arturo" --jq '.sha' 2>/dev/null || true)
+        if [ -n "$BLOB_SHA" ] \
+            && gh api "repos/${REPO_OWNER_REPO}/git/blobs/${BLOB_SHA}" -H "Accept: application/vnd.github.raw" > "$TMPDIR_X/arturo" 2>/dev/null; then
+            FETCHED=1
+        fi
+    fi
 
-if [ "$FETCHED" -eq 0 ]; then
-    echo "ERROR: could not download the binary from $REPO_OWNER_REPO" >&2
-    echo "       (tried git clone, codeload, raw URL, gh API)." >&2
-    echo "       Ask the maintainer to upload the binary and/or add a GitHub Release." >&2
-    exit 1
-fi
+    if [ "$FETCHED" -eq 0 ]; then
+        echo "ERROR: could not download the binary from $REPO_OWNER_REPO" >&2
+        echo "       (tried git clone, codeload, raw URL, gh API)." >&2
+        exit 1
+    fi
 
-echo "== Verifying sha256"
-if ! ACTUAL=$(sha256_of "$TMPDIR_X/arturo"); then
-    echo "ERROR: no sha256 tool available" >&2
-    exit 1
+    echo "== Verifying sha256"
+    if ! ACTUAL=$(sha256_of "$TMPDIR_X/arturo"); then
+        echo "ERROR: no sha256 tool available" >&2
+        exit 1
+    fi
+    if [ "$ACTUAL" != "$PIN_SHA256" ]; then
+        echo "WARNING: sha256 mismatch — binary changed upstream."
+        echo "   expected: $PIN_SHA256"
+        echo "   actual:   $ACTUAL"
+        echo "   If this is the maintainer's new build, re-run with:"
+        echo "   ARTURO_SHA256=$ACTUAL scripts/get-arturo.sh"
+        echo "   and update the pin in config.env.example / references/runtime-dependencies.md."
+        exit 1
+    fi
+    echo "   OK: $ACTUAL"
+    SRC=$TMPDIR_X/arturo
 fi
-if [ "$ACTUAL" != "$PIN_SHA256" ]; then
-    echo "WARNING: sha256 mismatch — binary changed upstream."
-    echo "   expected: $PIN_SHA256"
-    echo "   actual:   $ACTUAL"
-    echo "   If this is the maintainer's new build (e.g. the Mini/no-UI version),"
-    echo "   re-run with: ARTURO_SHA256=$ACTUAL scripts/get-arturo.sh"
-    echo "   and update the pin in config.env.example / references/runtime-dependencies.md."
-    exit 1
-fi
-echo "   OK: $ACTUAL"
 
 mkdir -p "$(dirname "$DEST")"
-cp "$TMPDIR_X/arturo" "$DEST"
+cp "$SRC" "$DEST"
 chmod +x "$DEST"
 echo "== Installed to $DEST"
 

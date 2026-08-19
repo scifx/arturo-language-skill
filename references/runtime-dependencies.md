@@ -1,153 +1,119 @@
-# Arturo runtime: preferred source and dependency spec
+# Arturo runtime: bundled binaries and dependency spec
 
-Verified **2026-08-19** against the binary in the maintainer's distribution repo.
+Verified **2026-08-19**. This skill ships its own prebuilt Arturo binaries in
+`bin/` — the shortest path from clone to a working runtime, with no download
+step at all.
 
-## Preferred source: scifx/arturo-bin
+## Preferred runtime: the binaries bundled in this repo
 
-`https://github.com/scifx/arturo-bin` is the **preferred way to get an Arturo
-runtime** (maintainer-uploaded prebuilt executable, kept in sync with this
-skill). The repo contains a single file, `arturo`, at the root.
+| Property | `bin/arturo` (Full, no UI) | `bin/arturo-mini` (Mini) |
+|---|---|---|
+| Version | `0.10.1-dev+43` (amd64/linux) | `0.10.1-dev+43` (amd64/linux) |
+| Source | `scifx/Arturo-Future` commit `933420d` (main, 2026-08-19) | same |
+| Toolchain | Nim 2.2.6 + GCC 12.2 (Debian 12), `--release` (LTO + strip + mimalloc) | same |
+| Size | 6,519,792 bytes | 5,200,088 bytes |
+| SHA-256 | `b7597e9d5ea3d0c0229e37c936518b12c0d69cb9ffe514fad63a9e08f2b0a38d` | `78fbbf467528a8b7e2cc83d5015f5d75c3c6165f7f188ef543b7bcae848705ad` |
+| Glibc floor | ≥ 2.36 (Debian 12+, Ubuntu 22.04+) | ≥ 2.36 |
+| Extra shared libs | `libgmp.so.10`, `libmpfr.so.6`, `libssl.so.3`, `libcrypto.so.3` (+ dlopen `libsqlite3.so.0`) | none (glibc base only) |
 
-| Property | Value |
-|---|---|
-| Repository | `https://github.com/scifx/arturo-bin` |
-| File | `arturo` (repo root) |
-| Commit verified | `cc0849a870c6561b01c8d48e8216b4fe608723d0` (`main`, 2026-08-19) |
-| Git blob SHA | `ed862400057c5e5baa6f388070a5860b5b144e79` |
-| SHA-256 | `73bda27194bf0ae0dcc89550cfd590313f6e1c586f0f255e01e0b2b82388d3cb` |
-| Size | 12,524,488 bytes |
-| Format | ELF 64-bit LSB executable, x86-64, dynamically linked |
-| Build variant | **Full** (includes the UI/webview stack; see §3) |
-
-### Fetch routes (all verified in a restricted sandbox)
-
-Use `scripts/get-arturo.sh` — it tries these in order and verifies the SHA-256:
-
-1. `git clone --depth 1 --branch main https://github.com/scifx/arturo-bin.git`
-   — works even where raw.githubusercontent.com is blocked.
-2. Codeload tarball: `https://codeload.github.com/scifx/arturo-bin/tar.gz/refs/heads/main`
-3. Raw file: `https://raw.githubusercontent.com/scifx/arturo-bin/main/arturo`
-   (normal networks only; raw.githubusercontent.com is often firewalled).
-4. GitHub API blob (needs `gh` CLI + auth):
-   `gh api repos/scifx/arturo-bin/git/blobs/<blob-sha> -H "Accept: application/vnd.github.raw"`
-
-After fetching, put the binary on `$PATH` (e.g. `~/.arturo/bin/arturo` or
-`/usr/local/bin/arturo`) or set `ARTURO_BIN` for `bin/ahelp`.
-
-## 1. Direct shared-library requirements (SONAMEs)
-
-From `readelf -d` of the verified binary:
-
-```
-libm.so.6            libmpfr.so.6          libgmp.so.10
-libwebkit2gtk-4.1.so.0   libgtk-3.so.0      libgdk-3.so.0
-libglib-2.0.so.0     libjavascriptcoregtk-4.1.so.0
-libgobject-2.0.so.0  libstdc++.so.6        libxcb.so.1
-libgcc_s.so.1        libc.so.6
-```
-
-Transitive dependencies observed on Debian 12: `libXau.so.6`, `libXdmcp.so.6`,
-`libbsd.so.0`, `libffi.so.8`, `libmd.so.0`, `libpcre2-8.so.0`.
-
-## 2. Version floors (what "too old" means)
-
-The verified binary was built on a newer toolchain than Debian 12 provides:
-
-| Floor | Meaning | Debian 12 (bookworm) | Needs at least |
-|---|---|---|---|
-| `GLIBC_2.38` | glibc version | 2.36 ❌ | Debian 13 (trixie), Ubuntu 23.10+, Fedora 39+, Arch (2023-08+) |
-| `GLIBCXX_3.4.32` | libstdc++ (GCC 13.2+) | 3.4.30 (GCC 12) ❌ | Debian 13 (GCC 13/14), Ubuntu 23.10+ (gcc-13), Fedora 39+ |
-
-**Consequence (runtime-verified): the current Full binary cannot start on
-Debian 12** — `ldd` reports both floors missing, and `libwebkit2gtk-4.1.so.0`
-is absent. `./arturo --version` exits 127 (`error while loading shared
-libraries: libwebkit2gtk-4.1.so.0`). This is an environment/dependency
-limitation, not an Arturo defect.
-
-## 3. Missing libraries on this sandbox (Debian 12) — full report
-
-From `ldd` (all four are the UI stack; only needed by the **Full** build):
-
-| Missing library | Debian/Ubuntu package | Fedora | Arch |
-|---|---|---|---|
-| `libwebkit2gtk-4.1.so.0` | `libwebkit2gtk-4.1-0` | `webkit2gtk4.1` | `webkit2gtk-4.1` |
-| `libjavascriptcoregtk-4.1.so.0` | `libjavascriptcoregtk-4.1-0` | `webkit2gtk4.1` | `webkit2gtk-4.1` |
-| `libgtk-3.so.0` | `libgtk-3-0` | `gtk3` | `gtk3` |
-| `libgdk-3.so.0` | `libgtk-3-0` | `gtk3` | `gtk3` |
-
-Install command on Debian/Ubuntu (needs apt network access):
+Use them directly:
 
 ```bash
-sudo apt-get install -y libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 libgtk-3-0
+./bin/arturo --version
+export ARTURO_BIN="$PWD/bin/arturo"    # for bin/ahelp / scripts; ahelp auto-detects from PATH too
 ```
 
-Already present on this sandbox (no action): `libm`, `libmpfr6`, `libgmp10`,
-`libglib2.0-0`, `libgobject2.0-0`, `libxcb1`, `libgcc-s1`, `libstdc++6` (too
-old: see §2), `libpcre2-8-0`, `libffi8`, `libxau6`, `libxdmcp6`, `libbsd0`,
-`libmd0`.
+## 1. What the Full build includes (runtime-verified 2026-08-19)
 
-> Note: on this sandbox the Debian mirrors are unreachable (egress allows only
-> GitHub + PyPI + npm), so the four UI packages could not be apt-installed here.
-> They would only help the Full build anyway — the glibc/libstdc++ floors in
-> §2 still block it on Debian 12.
+Built from the fork's full build mode **minus the UI stack** (`WEBVIEW`,
+`DIALOGS`, `CLIPBOARD` were removed — they need webkit2gtk/GTK/X11 dev headers
+and are useless headless; this matches the upstream `--no-ui` intent):
 
-## 4. Mini (no-UI) build — what it removes, and how to produce it
+| Feature | Module / lib | Verified result |
+|---|---|---|
+| Big integers | GMP (`libgmp.so.10`) | `print 2^300` → correct 91-digit result |
+| Arbitrary floats | MPFR (`libmpfr.so.6`) | `sqrt 2.0` → `1.4142135623730951` |
+| HTTPS / SSL | OpenSSL 3 (`libssl.so.3`/`libcrypto.so.3`, dynamic) | `request "https://api.github.com/..." #[]` → status 200 |
+| SQLite databases | dlopen `libsqlite3.so.0` | create/insert/`SELECT count(*)` → `[3]` |
+| Regex | PCRE (vendored static) | `match "hello123" {/[a-z]+[0-9]+/}` → works |
+| Parsers (markdown/html/xml/toml/csv) | vendored | included |
+| Crypto | vendored | `hash` builtins work |
+| Package manager | — | included (`--package` in help) |
 
-**Update 2026-08-19: a full + mini pair was already built from
-`scifx/Arturo-Future` (commit `933420d`, version `0.10.1-dev+43`) in this
-sandbox and packaged for upload to `scifx/arturo-bin`** (see below). After the
-maintainer uploads them, replace the SHA-256 pin in `config.env.example` /
-`get-arturo.sh` and update this section.
+## 2. Missing libraries on this sandbox (Debian 12) — none
 
-Built binaries (Linux x86-64, glibc ≥ 2.36 — run on Debian 12):
+`ldd bin/arturo` and `ldd bin/arturo-mini` report **no** `not found` entries on
+Debian 12. The previous scifx/arturo-bin upload (Full build on glibc 2.38)
+required `libwebkit2gtk-4.1.so.0`, `libjavascriptcoregtk-4.1.so.0`,
+`libgtk-3.so.0`, `libgdk-3.so.0` and glibc ≥ 2.38 — none of that applies to
+the bundled binaries.
 
-| Build | SHA-256 | Size | Contents |
+If a target host is missing the Full build's system libs:
+
+| Library | Debian/Ubuntu | Fedora | Arch |
 |---|---|---|---|
-| `full/arturo` (no UI) | `b7597e9d5ea3d0c0229e37c936518b12c0d69cb9ffe514fad63a9e08f2b0a38d` | 6,519,792 | GMP big ints, HTTPS (OpenSSL 3 dyn), SQLite, PCRE, parsers, crypto, DOCGEN, package manager |
-| `mini/arturo` | `78fbbf467528a8b7e2cc83d5015f5d75c3c6165f7f188ef543b7bcae848705ad` | 5,200,088 | zero extra shared-lib deps; no GMP/SSL/SQLite/parsers |
-
-Runtime deps of `full/arturo`: `libm`, `libgcc_s`, `libc`, `libgmp.so.10`,
-`libmpfr.so.6`, `libssl.so.3`, `libcrypto.so.3` (all standard on Debian 12+ /
-Ubuntu 22.04+ / Fedora 39+ / Arch); sqlite is dlopen'd. `mini/arturo` only
-needs glibc base.
-
-### Mini build — what it removes, and how to produce it
-
-The Mini build (`./build.nims --mode mini`) has **no** webview/GTK/JS-Core
-dependencies and no GMP/SSL/SQLITE/PARSERS: the four UI libraries above are
-not needed at all, and neither are the big-int/https/database libraries.
-
-Remaining floors for Mini: same toolchain constraints as §2 — so build it **on
-Debian 12 (glibc 2.36, GCC 12)** or any distro with glibc ≤ 2.36 so it runs on
-Debian 12 and older:
+| `libgmp.so.10` | `libgmp10` | `gmp` | `gmp` |
+| `libmpfr.so.6` | `libmpfr6` | `mpfr` | `mpfr` |
+| `libssl.so.3` / `libcrypto.so.3` | `libssl3` | `openssl` | `openssl` |
+| `libsqlite3.so.0` (dlopen) | `libsqlite3-0` | `sqlite-libs` | `sqlite` |
 
 ```bash
-git clone https://github.com/scifx/Arturo-Future
-cd Arturo-Future
-# NOTE: on glibc ≤ 2.36 the fork needs 4 small local patches before building —
-# see the README shipped with the packaged binaries (local gmp.h/mpfr.h,
-# header paths in gmp.nim/mpfr.nim, no WEBVIEW/DIALOGS/CLIPBOARD in
-# .config/buildmode.nims, dynamic -lssl -lcrypto in src/library/Net.nim
-# instead of the glibc-2.38 vendored static OpenSSL).
-./build.nims --mode mini        # requires Nim + gcc; libgmp/libmpfr runtime libs
-./bin/arturo --version          # upload this binary to scifx/arturo-bin
+sudo apt-get install -y libgmp10 libmpfr6 libssl3 libsqlite3-0   # Debian/Ubuntu
+scripts/get-arturo.sh --check-only bin/arturo                    # live missing-lib report
 ```
 
-Then update in this skill: SHA-256 pin (`config.env.example` +
-`references/runtime-dependencies.md`) and the `ldd` report above. The
-2026-08-19 full/mini pair above was built exactly this way (Nim 2.2.6, GCC
-12.2, `--release` LTO) and both run on Debian 12.
+## 3. Why the fork needed patches to build on glibc 2.36 (rebuild notes)
+
+The fork builds out of the box only on a newer toolchain (its vendored static
+OpenSSL was built on glibc 2.38, and it expects system `gmp.h`/`mpfr.h` dev
+headers). To reproduce the bundled binaries on Debian 12:
+
+1. **`src/extras/gmp.h` + `src/extras/mpfr.h`** (generated) — ABI-identical
+   local replacements for `libgmp-dev`/`libmpfr-dev`, generated from the Nim
+   wrappers by `build-tools/gen_headers.py`: all 686+31 prototypes, the
+   `#define foo __gmp_foo` symbol mapping exactly as in official gmp.h
+   (emitted **before** prototypes so declarations expand — otherwise gcc
+   implicit-int-truncates 64-bit pointers), and the inline functions
+   (`mpq_numref`/`mpq_denref`/`mpz_sgn`/`mpq_sgn`/`mpf_sgn`/`mpz_odd_p`/
+   `mpz_even_p`).
+2. **`src/extras/gmp.nim` / `mpfr.nim`** — header pragma changed from
+   `"<gmp.h>"` to `"\"gmp.h\""` so the wrapper uses the local headers.
+3. **`.config/buildmode.nims`** — Full build no longer defines `WEBVIEW`,
+   `DIALOGS`, `CLIPBOARD` (see above). GMP/ssl/SQLITE/PARSERS/DOCGEN kept.
+4. **`src/library/Net.nim`** — Linux SSL switched from the vendored static
+   `src/deps/openssl/*.a` (glibc 2.38-only, `__isoc23_strtol`) to dynamic
+   `-lssl -lcrypto` against system OpenSSL 3.
+
+Rebuild (Debian/Ubuntu):
+
+```bash
+sudo ln -sf /usr/lib/x86_64-linux-gnu/libgmp.so.10   /usr/lib/x86_64-linux-gnu/libgmp.so
+sudo ln -sf /usr/lib/x86_64-linux-gnu/libmpfr.so.6  /usr/lib/x86_64-linux-gnu/libmpfr.so
+sudo ln -sf /usr/lib/x86_64-linux-gnu/libssl.so.3    /usr/lib/x86_64-linux-gnu/libssl.so
+sudo ln -sf /usr/lib/x86_64-linux-gnu/libcrypto.so.3 /usr/lib/x86_64-linux-gnu/libcrypto.so
+nim build.nims -m full --release --log    # → bin/arturo (Full, no UI)
+nim build.nims -m mini --release --log    # → bin/arturo-mini (Mini)
+```
+
+## 4. Mini build — what it removes
+
+`--mode mini` defines `MINI` only: no GMP, no SSL/HTTPS, no SQLITE, no
+PARSERS, no WEBVIEW/DIALOGS/CLIPBOARD, no DOCGEN, no package manager. Big-int
+use raises "Number operation overflow", sqlite fails with a VM Error, https
+returns null — all expected and runtime-verified. Use it where zero extra
+dependencies matter (minimal containers) and core/collection/string/reflection
+features are enough.
 
 ## 5. How to check a binary's dependencies quickly
 
 ```bash
-ldd ./arturo                        # missing libs -> "not found"
-objdump -T ./arturo | grep -oE 'GLIBC_[0-9.]+|GLIBCXX_[0-9.]+' | sort -uV | tail  # version floors
-scripts/get-arturo.sh --check-only ./arturo   # one-shot report with hints
+ldd ./bin/arturo                          # missing libs -> "not found"
+objdump -T ./bin/arturo | grep -oE 'GLIBC_[0-9.]+|GLIBCXX_[0-9.]+' | sort -uV | tail
+scripts/get-arturo.sh --check-only ./bin/arturo   # one-shot report with hints
 ```
 
-## 6. Other (fallback) install routes
+## 6. Fallback install routes
 
-If scifx/arturo-bin is unavailable, keep the official routes (see
-`resources.md`): `curl -sSL https://get.arturo-lang.io | sh`, official
+If the bundled binaries are unavailable (different OS/arch), official routes
+(see `resources.md`): `curl -sSL https://get.arturo-lang.io | sh`, official
 pre-built ZIPs, Homebrew, AUR, or building from source (last resort).

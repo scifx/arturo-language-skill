@@ -4,32 +4,46 @@ description: Write, explain, translate, debug, test, and research Arturo program
 license: MIT
 metadata:
   language: Arturo
-  verified-version: 0.10.0
+  verified-version: 0.10.1-dev+43
   verified-date: 2026-08-19
-  default-arturo-command: arturo
+  default-arturo-command: bin/arturo
   default-python-command: python3
-  preferred-runtime-source: https://github.com/scifx/arturo-bin
+  preferred-runtime-source: this repository (bin/arturo, bin/arturo-mini)
 ---
 
 # Arturo Language Skill
 
 Use this skill to produce **version-aware, tested Arturo**, not plausible-looking Rebol/Python.
 
-## Install / get the Arturo runtime (only if it is missing)
+## Get the Arturo runtime — the shortest path: use the one bundled in this repo
 
-Check for a runtime first. If `command -v arturo` finds nothing (or `arturo --version` fails), get the binary from **`scifx/arturo-bin`** — the maintainer's prebuilt-executable repo, the preferred and fastest way to obtain Arturo:
+**This skill ships its own prebuilt Arturo binaries — no download needed.** Use them directly:
 
 ```bash
-command -v arturo && arturo --version          # already installed?
-scripts/get-arturo.sh                          # fetch from scifx/arturo-bin, verify sha256, check deps
-# equivalent manual route:
-git clone --depth 1 https://github.com/scifx/arturo-bin.git /tmp/arturo-bin
-install -m755 /tmp/arturo-bin/arturo ~/.arturo/bin/arturo   # then put ~/.arturo/bin on PATH
+./bin/arturo --version        # Full build (no UI): big ints, HTTPS, SQLite, regex, parsers, crypto, DOCGEN
+./bin/arturo-mini --version   # Mini build: zero extra shared-lib dependencies
+
+# make bin/ahelp and all skill commands use the bundled runtime:
+export ARTURO_BIN="$PWD/bin/arturo"
+# or install it onto PATH once:
+install -m755 bin/arturo ~/.arturo/bin/arturo   # then add ~/.arturo/bin to PATH
 ```
 
-`scripts/get-arturo.sh` tries four fetch routes in order (git clone → codeload tarball → raw URL → GitHub API blob via `gh`), verifies the SHA-256 pin, installs to `~/.arturo/bin/arturo` (override with `ARTURO_DEST`), and prints a per-distro report of any missing local libraries. Full fetch/verify details, the SHA-256 pin, and the exact dependency spec live in `references/runtime-dependencies.md`.
+Both are built from `scifx/Arturo-Future` (0.10.1-dev+43, commit `933420d`,
+2026-08-19) and run on **glibc ≥ 2.36** (Debian 12+, Ubuntu 22.04+). They live
+in `bin/` so every clone of this repo carries the runtime with it — the fastest
+possible path from clone to working Arturo. Checksums: see
+`references/runtime-dependencies.md`.
 
-Official fallback routes (use these only if `scifx/arturo-bin` is unavailable):
+**Runtime dependencies (in this sandbox, Debian 12):** the bundled Full build
+needs the system runtimes `libgmp.so.10`, `libmpfr.so.6`, `libssl.so.3`,
+`libcrypto.so.3` (all present by default on Debian 12+/Ubuntu 22.04+/Fedora
+39+/Arch; `apt-get install -y libgmp10 libmpfr6 libssl3` if missing) and
+dlopens `libsqlite3.so.0`. The Mini build has **zero** extra dependencies.
+`scripts/get-arturo.sh --check-only bin/arturo` prints a live missing-lib
+report; the full matrix is in `references/runtime-dependencies.md`.
+
+Fallback routes (use these only when the bundled binaries are unavailable):
 
 | System | Command / route |
 |---|---|
@@ -43,13 +57,11 @@ Official fallback routes (use these only if `scifx/arturo-bin` is unavailable):
 Then verify and make the runtime discoverable by the skill tools:
 
 ```bash
-arturo --version                 # e.g. 0.10.0
-export ARTURO_BIN=$(command -v arturo)   # optional; bin/ahelp also auto-detects from PATH
+./bin/arturo --version                 # e.g. 0.10.1-dev+43 (bundled binary)
+export ARTURO_BIN="$PWD/bin/arturo"    # optional; bin/ahelp also auto-detects from PATH
 ```
 
-**Runtime dependencies (current `scifx/arturo-bin` binary, verified 2026-08-19):** the uploaded binary is a **Full build** — it requires glibc ≥ 2.38, libstdc++ with `GLIBCXX_3.4.32` (GCC 13.2+), plus the GUI stack `libwebkit2gtk-4.1.so.0`, `libjavascriptcoregtk-4.1.so.0`, `libgtk-3.so.0`, `libgdk-3.so.0` (Debian/Ubuntu: `sudo apt-get install -y libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 libgtk-3-0`). It therefore **does not run on Debian 12** (glibc 2.36 / GCC 12). A **Mini/no-UI build** (`./build.nims --mode mini`, built on a glibc ≤ 2.36 distro such as Debian 12) drops all four GUI libs and runs everywhere. Run `scripts/get-arturo.sh --check-only /path/to/arturo` for a live missing-lib report; full matrix in `references/runtime-dependencies.md`.
-
-**If no runtime can be installed in this environment**, do not guess signatures: use the offline path `./bin/ahelp name` and the reference files, and say so when reporting results. Do not invent a signature you cannot run.
+**If no runtime can be run in this environment**, do not guess signatures: use the offline path `./bin/ahelp name` and the reference files, and say so when reporting results. Do not invent a signature you cannot run.
 
 ## Start here: zero/one-step lookup
 
@@ -109,7 +121,7 @@ Copy `config.env.example` to `config.env` for persistent local overrides. Never 
 | Unknown function name/concept | `./bin/ahelp -s TERM` | none |
 | Syntax/evaluation question | read this file's quick rules, then `references/syntax-cheatsheet.md` only if needed | at most one |
 | Gotchas / idioms / correct usage | `references/practical-rules.md` (string forms, infix right-to-left, `import ...!`, template safety, error handling) | one |
-| Runtime binary / dependencies / distro compatibility | `references/runtime-dependencies.md` + `scripts/get-arturo.sh` | one |
+| Runtime binary / dependencies / distro compatibility | `bin/arturo` (bundled) + `references/runtime-dependencies.md` | none |
 | 15-minute tour vs Python (learn fast) | `references/in-a-nutshell-vs-python.md` | one |
 | HTTP / JSON / `serve` / file-state (real project) | `references/web-and-http-patterns.md` | one |
 | Python translation | `references/python-to-arturo.md` | one |
@@ -174,7 +186,7 @@ Base URL: `https://arturo-lang.io/`. Predicate `?` often becomes `-` in a slug, 
    - Python translation → `references/python-to-arturo.md`
    - task recipes → `references/recipes.md`
    - links/source/package routes → `references/resources.md`
-   - runtime binary/deps (scifx/arturo-bin, missing libs) → `references/runtime-dependencies.md`
+   - runtime binary/deps (bundled bin/arturo, missing libs) → `references/runtime-dependencies.md`
    - compatibility/evidence → `references/verified-tests.md`
 
 **If no runtime is available**, verify signatures and idioms against the official source instead of guessing: clone the matching tag (`git clone --depth 1 --branch v0.10.0 https://github.com/arturo-lang/arturo`), then check the built-in's `builtin "name"` declaration in `src/library/*.nim` and its official examples in `tests/unittests/*.art`. Example checks that already passed against v0.10.0 source:

@@ -12,6 +12,10 @@ if [ -f "$ROOT/config.env" ]; then
     # shellcheck disable=SC1091
     . "$ROOT/config.env"
 fi
+# Default to the runtime bundled in this repo (bin/arturo); fall back to PATH lookup.
+if [ -z "${ARTURO_BIN:-}" ] && [ -x "$ROOT/bin/arturo" ]; then
+    ARTURO_BIN="$ROOT/bin/arturo"
+fi
 ARTURO_BIN=${ARTURO_BIN:-arturo}
 LATEST=0
 SEARCH=0
