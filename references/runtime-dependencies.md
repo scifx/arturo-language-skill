@@ -93,25 +93,50 @@ old: see §2), `libpcre2-8-0`, `libffi8`, `libxau6`, `libxdmcp6`, `libbsd0`,
 
 ## 4. Mini (no-UI) build — what it removes, and how to produce it
 
-The maintainer's next upload should be a **Mini build** (`./build.nims --mode
-mini`): it has **no** webview/GTK/JS-Core dependencies, so the four UI
-libraries above are not needed at all.
+**Update 2026-08-19: a full + mini pair was already built from
+`scifx/Arturo-Future` (commit `933420d`, version `0.10.1-dev+43`) in this
+sandbox and packaged for upload to `scifx/arturo-bin`** (see below). After the
+maintainer uploads them, replace the SHA-256 pin in `config.env.example` /
+`get-arturo.sh` and update this section.
+
+Built binaries (Linux x86-64, glibc ≥ 2.36 — run on Debian 12):
+
+| Build | SHA-256 | Size | Contents |
+|---|---|---|---|
+| `full/arturo` (no UI) | `b7597e9d5ea3d0c0229e37c936518b12c0d69cb9ffe514fad63a9e08f2b0a38d` | 6,519,792 | GMP big ints, HTTPS (OpenSSL 3 dyn), SQLite, PCRE, parsers, crypto, DOCGEN, package manager |
+| `mini/arturo` | `78fbbf467528a8b7e2cc83d5015f5d75c3c6165f7f188ef543b7bcae848705ad` | 5,200,088 | zero extra shared-lib deps; no GMP/SSL/SQLite/parsers |
+
+Runtime deps of `full/arturo`: `libm`, `libgcc_s`, `libc`, `libgmp.so.10`,
+`libmpfr.so.6`, `libssl.so.3`, `libcrypto.so.3` (all standard on Debian 12+ /
+Ubuntu 22.04+ / Fedora 39+ / Arch); sqlite is dlopen'd. `mini/arturo` only
+needs glibc base.
+
+### Mini build — what it removes, and how to produce it
+
+The Mini build (`./build.nims --mode mini`) has **no** webview/GTK/JS-Core
+dependencies and no GMP/SSL/SQLITE/PARSERS: the four UI libraries above are
+not needed at all, and neither are the big-int/https/database libraries.
 
 Remaining floors for Mini: same toolchain constraints as §2 — so build it **on
 Debian 12 (glibc 2.36, GCC 12)** or any distro with glibc ≤ 2.36 so it runs on
 Debian 12 and older:
 
 ```bash
-git clone https://github.com/arturo-lang/arturo
-cd arturo
-./build.nims --mode mini        # requires Nim + libgmp/mpfr dev packages
-./bin/arturo --version          # upload this binary to scifx/arturo-bin as `arturo`
+git clone https://github.com/scifx/Arturo-Future
+cd Arturo-Future
+# NOTE: on glibc ≤ 2.36 the fork needs 4 small local patches before building —
+# see the README shipped with the packaged binaries (local gmp.h/mpfr.h,
+# header paths in gmp.nim/mpfr.nim, no WEBVIEW/DIALOGS/CLIPBOARD in
+# .config/buildmode.nims, dynamic -lssl -lcrypto in src/library/Net.nim
+# instead of the glibc-2.38 vendored static OpenSSL).
+./build.nims --mode mini        # requires Nim + gcc; libgmp/libmpfr runtime libs
+./bin/arturo --version          # upload this binary to scifx/arturo-bin
 ```
 
 Then update in this skill: SHA-256 pin (`config.env.example` +
-`references/runtime-dependencies.md`) and the `ldd` report above. The official
-Mini 0.10.0 ZIP is known to run on Debian 12, so a Mini build made on Debian 12
-will too.
+`references/runtime-dependencies.md`) and the `ldd` report above. The
+2026-08-19 full/mini pair above was built exactly this way (Nim 2.2.6, GCC
+12.2, `--release` LTO) and both run on Debian 12.
 
 ## 5. How to check a binary's dependencies quickly
 
