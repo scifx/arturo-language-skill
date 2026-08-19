@@ -39,6 +39,24 @@ Use this skill to produce **version-aware, tested Arturo**, not plausible-lookin
    这就解释了全部"魔法": `sort 'xs` 就地排序、`'xs ++ 9` 追加、`inc 'i` 自增、
    `loop xs 'x` 循环注入变量、`info 'print` 传名字而非执行函数。
 
+### 核心关键字最小集 (the six meta-capabilities)
+
+这套"查字典 + 指针"的心智模型能立起来,靠的是六个元能力关键字——它们是
+"语言教自己"的基础设施,分三层:
+
+| 层 | 关键字 | 作用 |
+|---|---|---|
+| 查字典层 | `symbols` | 字典目录: `symbols \| keys \| print` 列出所有可用词 |
+| | `info` (+`.get`) | 查词的契约: 签名/属性/返回值,`.get` 拿元数据字典和**官方示例** |
+| | `inspect` | 查值的运行时结构: 字典键、嵌套块、错误内容、日期字段 |
+| 指针层 | `var` | 解引用读: `var 'a` → a 的值 |
+| | `let` | 解引用写: `let 'a v` → 绑定 a = v |
+| 执行层 | `do` | 块从"数据"变"代码"的开关: `do [code]` 执行块 |
+
+有了这六个,任何不认识的词都能在本地"自举"出来: `symbols` 找词 → `info`
+看契约 → `info.get ... example` 拿可运行示例 → `inspect` 看值 → `var`/`let`
+理解指针语义 → `do` 验证。这就是"边查边写"的全部基础设施。
+
 ## Get the Arturo runtime — the shortest path: use the one bundled in this repo
 
 **This skill ships its own prebuilt Arturo binaries — no download needed.** Use them directly:
