@@ -17,6 +17,7 @@ point — flagged clearly.
 |---|---|---|
 | prefix, right-to-left, arity-driven | prefix-free, left-to-right | group with `(...)` in Arturo |
 | `x: 3` binds | `x = 3` assigns | Arturo `=` is **compare**, not assign |
+| `'x` literal = **pointer** to x | `'x` ≈ `"x"` symbol | `var 'x` dereferences, `let 'x v` writes through, `sort 'x` mutates in place |
 | `;` comment | `#` comment | `;` eats the rest of the physical line |
 | whitespace only (spaces) | indentation blocks | compressible to one line if no `;` |
 

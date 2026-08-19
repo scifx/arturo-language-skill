@@ -15,6 +15,30 @@ metadata:
 
 Use this skill to produce **version-aware, tested Arturo**, not plausible-looking Rebol/Python.
 
+## Arturo 的核心思想 (the one-paragraph mental model)
+
+> **Arturo 只有几条基本规则。规则熟悉后,写代码就是"查字典"——每个词都是一个
+> 字典条目,边查边写;词后面加 `.属性` 扩展它的功能;按规则把词组合起来,就能
+> 写出任何程序。语法上它像 Lisp(代码即数据、前缀调用、无语法),但心智模型上
+> 它更接近"字典 + 指针"。**
+
+拆开就是四句话(全部展开在 `references/practical-rules.md`):
+
+1. **词 = 功能条目(查字典写代码)。** 每个词(`print` `map` `sort` `digest`...)
+   就是一个函数/值。写代码前先查字典: `info '词`(或 `./bin/ahelp 词`)给出
+   签名、属性、返回值和**可运行的官方示例**——照着示例改就是正确代码。521 个
+   词全部可本地查询,不靠猜。
+2. **词 + `.属性` = 功能扩展。** `sort` → `sort.descending`(布尔属性)、
+   `sort.by: 'x`(带值属性);`join` → `join.with: ","`;`read` → `read.json`
+   `read.toml` `read.xml` `read.lines`。同一个词,点号一加就是新变体。属性本质
+   是"属性栈"(不是参数),详见下。
+3. **规则组合 = 程序。** 前缀调用、右到左求值、无优先级、arity 驱动、块 `[...]`
+   是延迟的数据、`|` 管道倒转调用顺序。基本规则就这些。
+4. **`'a` 字面量 = 指针,`var 'a` = 解引用。** 字面量是"词本身"(`:literal`),
+   把它传给函数 = 传指针,函数可用 `var`(解引用读)/ `let`(解引用写)读写原变量。
+   这就解释了全部"魔法": `sort 'xs` 就地排序、`'xs ++ 9` 追加、`inc 'i` 自增、
+   `loop xs 'x` 循环注入变量、`info 'print` 传名字而非执行函数。
+
 ## Get the Arturo runtime — the shortest path: use the one bundled in this repo
 
 **This skill ships its own prebuilt Arturo binaries — no download needed.** Use them directly:
@@ -153,9 +177,12 @@ mental shifts. Full runtime-verified details live in
    of prefix functions (`add`, `mul`, `append`, `switch`, `coalesce`).
    `++` concatenates **strings only**; for mixed values convert first
    (`(to :string n) ++ "x"`) or use `~"|n|x"` / `print [n "x"]`.
-4. **In-place mutation via literals; values are by-reference.** `sort 'a`,
-   `'xs ++ item`, `inc 'i` mutate the original. `b: a` aliases `a` — use
-   `new` to copy before mutating independently.
+4. **`'a` is a pointer; `var 'a` dereferences it; `let 'a v` writes through
+   it.** This one model explains everything "magic": `sort 'a` mutates in
+   place, `'xs ++ item` appends, `inc 'i` increments, `loop xs 'x` injects a
+   variable, `info 'print` passes the name instead of executing it. Values
+   themselves are by-reference too: `b: a` aliases `a` — use `new a` for an
+   independent copy.
 5. **Blocks have no scope; functions isolate; `.inline` opens them up.**
    Iterator variables are restored after the loop. Errors are values:
    `err: try [...]`, then `error? err`; `err\kind`/`err\msg`.

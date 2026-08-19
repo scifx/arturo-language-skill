@@ -97,6 +97,55 @@ for the Full build, none for Mini) are in `references/runtime-dependencies.md`.
   A `;` comment ends at end of line; it is the parser that treats the whole
   rest of the line as a comment. No need to move code to a separate line.
 
+## The literal-as-pointer mental model (`'a` / `var` / `let`)
+
+**Verified on the bundled runtime (and the model agent-shell.art's author uses
+to teach Arturo).** The single most useful way to *think* about literals:
+
+- `'a` is a `:literal` — the **word itself**, not its value. Think: a
+  **pointer to the variable `a`**.
+- `var 'a` **dereferences**: reads the value the pointer points at.
+- `let 'a v` **writes through the pointer**: binds `a` to `v`.
+- Passing `'a` to a builtin whose signature accepts `:literal`/
+  `:pathliteral` = passing the pointer so the function can **modify the
+  original** in place.
+
+```arturo
+a: 42
+p: 'a
+print type p            ; :literal        — p is a pointer
+print var p             ; 42              — dereference (read)
+print var 'a            ; 42              — same
+let 'a 99               ; dereference (write)
+print a                 ; 99
+
+xs: [3 1 2]
+sort 'xs                ; sort receives the pointer → mutates xs
+print xs                ; [1 2 3]
+'xs ++ 9                ; append through the pointer
+print xs                ; [1 2 3 9]
+inc 'a                  ; increment through the pointer
+```
+
+This model explains every "why is there a `'`?" in the language:
+
+| Code | Pointer reading |
+|---|---|
+| `sort 'xs` | "sort, modifying what `xs` points to" (vs `sort xs` = sort a copy, discard result) |
+| `'xs ++ item` / `append 'xs item` | append through the pointer to `xs` |
+| `inc 'i`, `'total + n` | modify `i`/`total` in place through the pointer |
+| `loop xs 'x [...]` | the loop creates a fresh variable `x` and hands its pointer to the body |
+| `info 'print` | pass the *name* `print` so info can look it up (passing `print` would call it) |
+| `let 'a v` | `let` binds through the pointer = assignment in other languages |
+| `var 'a` | read through the pointer = dereference |
+| `alias "bar" foo` | `alias` needs the *name* `bar` to bind (`'bar`/`"bar"`), not the value |
+| custom in-place fn | `incN: function [s :literal][ let s (var s) + 1 ]` then `incN 'n` mutates outer `n` |
+
+The Lisp connection: blocks `[...]` are data (not executed until `do`/
+iterators), code is a stream of words, calls are prefix — "code is data" like
+Lisp. But the *working* model for writing Arturo is the dictionary + pointer
+one: words are dictionary entries, literals are pointers.
+
 ## Words, attributes (method variants), literals
 
 - **Verified.** A word (`x`) resolves a value; a literal (`'x`) passes the word
@@ -415,6 +464,28 @@ Pitfalls:
 This is the idiomatic way to emulate Python's `def f(x=1, y=2)` — there is no
 `def f(x=1, y=2)` equivalent in the language itself. agent-shell.art's
 `lib/py.art` uses exactly this helper for its `.pypy:`/`.file:` flags.
+
+### Style note: the `'x: null` declaration form (version-dependent)
+
+agent-shell.art's `ai.art` declares attribute-style parameters like this:
+
+```arturo
+ai: function [msg][
+    'history: null        ; "declare attribute-style param, default null"
+    'tools: null
+    'system: null
+    ...
+]
+```
+
+**Runtime-verified caveat:** on the bundled build (0.10.1-dev+43) the
+attribute is **NOT** auto-bound to the same-named variable — `'tools: null`
+followed by a call `ai.tools: "T" "msg"` leaves `tools` as `null`. You must
+read attributes explicitly (`attr 'tools` / `attr? 'tools` / the `default`
+helper), as shown above. The `'x: null` form only *declares* the variable with
+a null default; whether attributes flow into it depends on the runtime
+version. For portable code, always pair the declaration with an explicit
+`attr`/`default` read.
 
 ## The `standalone?` main-guard idiom (project pattern)
 

@@ -176,3 +176,63 @@ alias.infix ":" 'default!
 | `VERIFICATION.md` | 本轮记录 |
 
 所有文档中的新示例(`fetch null`/`fetch .url:... null`、属性栈 `.by:`、placeholder 对照)均已实测输出正确。
+
+---
+
+# 第四轮:通读 agent-shell.art 全部代码 + 提炼"指针模型"核心思想 (2026-08-19)
+
+应作者(scifx)要求,通读项目**每一个文件每一行**(shell/agent/ai/ais/openai/
+prompt/schema/fnschema/convert_utils/utils/toolbox/aiutils/customTools/
+complete + lib/* + tools/*/tool.art+tool.json + skills/*/SKILL.md + useful/*),
+并验证作者提出的**核心教学模型: 字面量 = 指针**。
+
+## 作者的核心思想 (已写入 SKILL.md 开头)
+
+> 只有基本规则;规则熟悉后就是**查字典写代码**(每个词都有功能,`info '词` 就是
+> 查字典);词后加 `.属性` 扩展功能;按规则组合出程序。像 Lisp(代码即数据、
+> 前缀、无语法),但心智模型是"字典 + 指针"。
+
+## 指针模型 — 实测 100% 成立 (写入 SKILL.md 核心思想 + practical-rules.md)
+
+| 代码 | 指针解读 | 实测 |
+|---|---|---|
+| `'a` | `:literal` = 指向变量 a 的指针 | `type 'a` → `:literal` ✅ |
+| `var 'a` / `var p` | 解引用(读) | → 42 ✅ |
+| `let 'a 99` | 解引用(写) | a 变 99 ✅ |
+| `sort 'xs` | 传指针就地修改 | `[3 1 2]` → `[1 2 3]` ✅ |
+| `'xs ++ 9` / `append 'xs 9` | 通过指针追加 | ✅ |
+| `inc 'a` | 通过指针自增 | ✅ |
+| `loop xs 'x` | 循环注入新变量 x 的指针 | ✅ |
+| `info 'print` | 传名字(而非执行函数) | ✅ |
+| 自定义就地函数 | `function [s :literal][let s (var s)+1]` + `incN 'n` 改外部 n | ✅ |
+
+## 通读确认的项目细节
+
+- `shell.art`: `input.repl.complete:.history:` 交互外壳 + `try` 执行用户代码;
+  引用的 `symbols\hints` 在 complete.art 定义的字典上无 `hints` 键(项目自身
+  笔误/版本差异,正确应为 `.hint: hints`)。
+- `complete.art`: 全文件是"字典数据"——`completions`(符号补全列表)、
+  `hints`/`symbols`(符号→参数提示字典),印证"查字典"心智。
+- `ai.art` 的 `'x: null` 属性声明模式: 实测 0.10.1-dev+43 上属性**不自动绑定**
+  到同名变量(需显式 `attr`/`default` 读取),已作为版本差异写进
+  practical-rules.md;该项目可能面向更新运行时。
+- `schema.art`/`fnschema.art` 用 `define :type [method]` + `write.json \obj null`
+  动态生成 OpenAI JSON Schema —— 已提炼为 OOP + JSON 序列化实战范例。
+- `aiutils.art` 的 `fn`: `var x\name` 解引用函数名 + `@[fn args] | get 0` 动态调用。
+- `lib/py.art`: `default` helper + base64 编码 Python 代码经 `execute` 执行(无引号转义问题)。
+- `lib/rss.art`: `read.xml` 遍历 children + `case` 分发 RSS/Atom。
+- tools/: 每个工具 = `tool.art`(实现)+ `tool.json`(OpenAI function schema),
+  `customTools.art` 动态 `import` + `read.json` 加载。
+- skills/: 给 AI agent 的任务规范(SKILL.md 格式)——本项目正是这类 skill 的"使用者"。
+
+## 文档变更
+
+| 文件 | 变更 |
+|---|---|
+| `SKILL.md` | 开头新增 **Arturo 的核心思想** 章节(四句话心智模型: 词=条目查字典 / `.属性`扩展 / 规则组合 / `'a`=指针);思维模式转换第 4 条改用指针模型表述 |
+| `references/practical-rules.md` | 新增 **The literal-as-pointer mental model** 章节(含 10 行指针解读对照表 + Lisp 关系);default 章节补 `'x: null` 声明模式的版本差异说明 |
+| `references/syntax-cheatsheet.md` | `wordLiteral` 行标注"= POINTER to x" |
+| `references/in-a-nutshell-vs-python.md` | 心智模型表新增 `'x` = 指针一行 |
+| `VERIFICATION.md` | 本轮记录 |
+
+冒烟测试双 build 继续 PASS。

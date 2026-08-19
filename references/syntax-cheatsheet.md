@@ -6,7 +6,7 @@
 x: 42                       ; bind x
 name: "Ada"
 ch: 'A'                     ; character
-wordLiteral: 'x             ; literal word, used as data/reference
+wordLiteral: 'x             ; literal word = POINTER to x (var 'x dereferences, let 'x v writes)
 kind: :integer              ; type value
 items: [1 2 3]              ; block (data/code)
 user: #[name: "Ada" age: 37] ; dictionary
