@@ -236,3 +236,40 @@ complete + lib/* + tools/*/tool.art+tool.json + skills/*/SKILL.md + useful/*),
 | `VERIFICATION.md` | 本轮记录 |
 
 冒烟测试双 build 继续 PASS。
+
+---
+
+# 第五轮:info.get example 验证 + 对照作者资料文档补漏 (2026-08-19)
+
+## 1. `info.get 'x | get 'example` 关键写法 — 完整验证(作者要求"作为关键写入")
+
+作者指出 skill 有两大关键写法,第二条 `info.get` 之前未作为核心突出。本轮完整实测:
+
+| 验证项 | 结果 |
+|---|---|
+| `info.get 'map` 返回字典,11 字段: `name address type description module args attrs returns example line source` | ✅ |
+| `info.get 'map \| get 'example` 返回 `:block`,每项是 `:string` 代码段 | ✅ |
+| 每段可独立 `do` 运行(如 `do ex\0`),`;` 注释标注预期输出 | ✅ `print digest "Hello world" ; 3e25960a79...` |
+| 抽查 30 个不同模块词均有 example | ✅ (20/20 首批 + 各模块抽查) |
+| 别名符号可查:`info.get '++` → 解析为 `append` | ✅ |
+| **坑: `info.get` 只认直接字面量 `'x`** — 变量 `info.get w`、字符串 `info.get "map"` 均返回 `null`;普通 `info "map"`(字符串)能打印帮助但 `.get` 变体不返回字典 | ✅ 实测 |
+| `do` 整个 example 块不执行(块内是字符串,需逐段 `do`) | ✅ 实测 |
+
+已写入 SKILL.md "Start here" 章节:两种关键写法并列、example 结构、逐段 `do` 运行、只认字面量的坑。
+
+## 2. 对照作者资料文档(agent-shell 作者手写《Arturo资料》)提取补漏
+
+逐条核对作者文档 vs skill,发现:
+
+**已覆盖(无需补)**: 安装方法、15分钟速览、语言设计、命令行、标准库、100+示例、rosetta 仓库、源码、AI训练材料 gist、25 个模块、模块/类用法链接、错误处理 try/error?/error\kind、switch 替代 if-else、symbols 用法、模板字符串可执行漏洞。
+
+**本轮补强**:
+- `import ./{file}!` 三要素显式拆解(`./`=relative 简写、`{}`=花括号字符串标识符、`!`=应用到栈空间的执行标记)—— practical-rules.md + recipes.md 同步,强调多文件互依务必用显式 `./{...}!` 路径。
+- SKILL.md "Start here" 升级为"两种关键查找形式",把 `info.get 'x | get 'example` 提升为与 `info 'x` 并列的核心(含验证细节)。
+
+**作者文档中的 3 处小误差(未写入 skill,保持 skill 已纠正的正确版本)**:
+1. 文档写"极端复杂字符串用 `{::}`" — skill 已按官方手册/源码纠正:`{::}` 只是**空 verbatim 字符串**,无特殊字面量;正则用 `{/.../}`。
+2. 文档提"`reader` 关键字有可执行字符串漏洞" — skill 已纠正:无 `reader` 内建,正确名是 **`render`**(`~"..."`),可执行 `\|...\|` 插值内容。
+3. 文档写"中缀超过 3 个数要加括号" — skill 更精确:**无优先级、右到左结合**,任何混合中缀链都建议加括号(`2 * 3 + 4` = 14)。
+
+冒烟测试双 build 继续 PASS。

@@ -87,30 +87,57 @@ export ARTURO_BIN="$PWD/bin/arturo"    # optional; bin/ahelp auto-detects the bu
 
 **If no runtime can be run in this environment**, do not guess signatures: use the offline path `./bin/ahelp name` and the reference files, and say so when reporting results. Do not invent a signature you cannot run.
 
-## Start here: zero/one-step lookup
+## Start here: the two key lookup forms (查字典)
 
-**If the function name is known, do this first—do not open another reference file:**
+**There are exactly two lookup forms — memorize both, they are the whole
+"dictionary":**
+
+```arturo
+info 'x                  ; form #1: print formatted help (signature, attrs, returns)
+info.get 'x | get 'example   ; form #2: the official runnable example, offline
+```
+
+### Form #1: `info 'x` — human-readable help
 
 ```bash
 ./bin/arturo --no-color -e "info 'read"    # bundled runtime; zero other dependencies
-./bin/arturo --no-color -e "info '++"      # aliases/operators also work
-# if bin/arturo is on PATH, plain `arturo` works too
+./bin/arturo --no-color -e "info '++"      # aliases/operators also work ('++ → append)
 ```
 
-Inside the REPL or an `.art` file:
+Prints the signature, options, and return type — Arturo's `--help`.
+
+### Form #2: `info.get 'x | get 'example` — offline built-in example (KEY)
+
+`info.get 'x` returns the same metadata as a **dictionary** (fields: `name
+address type description module args attrs returns example line source`).
+The `example` field is a **block of ready-to-run code segments** — every
+keyword ships its official examples **inside the runtime, no internet
+needed**. Verified on the bundled build:
 
 ```arturo
-info 'read                 ; formatted signature, attributes, returns
-meta: info.get 'read       ; same metadata as a dictionary
-print meta\example         ; the OFFICIAL runnable example, available locally
+info.get 'map | get 'example | print    ; show all official examples
+ex: info.get 'map | get 'example
+print ex\0                              ; first segment (a multi-line string)
+do ex\0                                 ; RUN it right there
 ```
 
-**All of this is local and offline.** Once a runtime is installed, `info`,
-`info.get`, and the `example` field give you the usage, options, return type,
-**and a runnable example for every keyword without any internet access.** This
-is the fastest way to write correct code: query the keyword, read its
-`example`, adapt it. For symbols lists use `symbols | keys | print`. (When no
-runtime exists, `./bin/ahelp -s TERM` still resolves the doc URL offline.)
+- `example` is a `:block` whose items are `:string` code segments; each
+  segment is independently runnable with `do` (its `;`-comments show expected
+  output, e.g. `print digest "Hello world" ; 3e25960a79...`).
+- **Verified: `info.get` only works with a direct literal `'x`.** A variable
+  (`info.get w`) or a quoted string (`info.get "map"`) returns `null` on this
+  build — always write the literal. (Plain `info "map"` with a string DOES
+  print help, but its `.get` variant does not return a dict for strings.)
+- Alias symbols work: `info.get '++` → resolves to `append`.
+- 20/20 sampled keywords across all modules had an `example`; the standard
+  library embeds examples for essentially every keyword.
+
+**All of this is local and offline.** Once a runtime is installed, these two
+forms give you usage, options, return type, **and a runnable example for
+every keyword without any internet access.** This is the fastest way to write
+correct code: query the keyword → read its `example` → adapt it. For symbol
+lists use `symbols | keys | print`. (When no runtime exists, `./bin/ahelp -s
+TERM` still resolves the doc URL offline.)
 
 If Arturo is absent, or one command should provide runtime help plus the official URL:
 

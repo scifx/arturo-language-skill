@@ -174,22 +174,30 @@ one: words are dictionary entries, literals are pointers.
   fragile — **do not rely on it**. Prefer explicit attribute syntax
   (`sort.descending xs`, `join.with:\",\" xs`).
 
-## Importing local files: the `./...!` pattern
+## Importing local files: the `./{file}!` pattern
 
 ```arturo
-import "./foo.art"!
+import ./{foo}!
 ```
 
-**Verified / nuance.** `import "foo"` resolves a local `foo` or `foo.art` file
-first (see `processLocalFile` in `src/vm/packager.nim`), then a local folder,
-then a GitHub repo, then a local/remote package. So `./` is a valid relative
-path but not strictly required for a sibling file — `import "foo.art"!` works.
-The trailing **`!` is the execute marker**: it wraps the remaining expression
-in a `do` block (`opExec`), i.e. it forces the imported module's top-level code
-to be **applied to the current stack/scope**. Omitting it is a common pit —
-top-level definitions from a file may not become available to later code.
-`import.lean` gives a namespaced dictionary instead. For files that depend on
-each other, use explicit paths.
+**Verified / nuance.** Read the three pieces: `./` is the relative-path
+shorthand, `{...}` is the curly-brace string identifier, and the trailing
+**`!` is the execute marker** — it wraps the rest in a `do` block (`opExec`),
+i.e. it forces the imported module's top-level code to be **applied to the
+current stack/scope**. Omitting `!` is the classic pit: the module's
+definitions are not applied, and later code cannot find the functions/objects
+it defined.
+
+- **Multi-file projects that depend on each other: always use the explicit
+  `./{file}!` path form.** It is the most reliable across versions and avoids
+  resolution ambiguity (a bare `import "foo"!` first looks for local
+  `foo`/`foo.art`, then a folder, then a GitHub repo, then a package — the
+  relative form skips that guessing).
+- Dynamic paths work too: `p: "./dynmod.art"` then `import p!`.
+- `import.lean "pkg"!` gives a namespaced dictionary instead of injecting
+  into scope; `import.version:0.0.3 "pkg"!` pins a package version.
+- agent-shell.art loads its `tools/*/tool.art` at runtime exactly this way
+  (build each path, then `import x!` inside a loop).
 
 ## Conditionals: there is no `if/else`
 

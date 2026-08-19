@@ -145,12 +145,20 @@ Database support is Full-only. Query `database?`, `open`/database module entries
 
 ```arturo
 ; local module.art defines pi and hello
-import "module.art"!
+import ./{module}!
 hello "Ada"
 print pi
 ```
 
-Alternative legacy loading with `do relative "module.art"` may require using newly loaded functions inside a later `do [...]`; `import ...!` is usually clearer.
+Read the three pieces: `./` = relative-path shorthand, `{...}` = curly-brace
+string identifier, `!` = the execute marker (applies the module's top-level
+code to the current scope — omit it and later code can't find the module's
+definitions). For multi-file projects that depend on each other, always use
+the explicit `./{file}!` form; bare `import "module.art"!` also works but
+goes through resolution (local file → folder → GitHub repo → package).
+Alternative legacy loading with `do relative "module.art"` may require using
+newly loaded functions inside a later `do [...]`; `import ...!` is usually
+clearer.
 
 ## Package import with isolation
 
