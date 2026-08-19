@@ -205,8 +205,11 @@ verified against the v0.10.0 source checkout and the official examples corpus:
   the same name when it evaluates; it is real but fragile, so prefer explicit
   attribute syntax (`sort.descending`, `join.with:"`). Consistent with the
   attribute model in `src/library/*.nim` and `src/vm/ast.nim`.
-- Newlines are insignificant (whitespace-only syntax); `;` comments out the
-  rest of the line. Confirmed by official examples.
+- Newlines are insignificant (whitespace-only syntax): multi-line code of any
+  length can be compressed onto one line if spaces stay intact. But a `;`
+  comment discards everything after it on that physical line — so compressed
+  single-line code must have **no** `;` comments, or the rest of the line is
+  silently dropped. Confirmed by official examples and parser behavior.
 
 ## 10. Helper verification
 

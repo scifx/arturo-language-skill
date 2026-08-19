@@ -59,10 +59,20 @@ arturo`.
   ```
   Right-to-left association makes ungrouped chains easy to misread; always
   parenthesize mixed infix.
-- **Verified (whitespace-only, one-line style).** Arturo does not care about
-  newlines — code can be written on a single line separated by spaces (and
-  often is). The only line-sensitive token is `;`, which comments out the rest
-  of that line.
+- **Verified (whitespace-only, compress to one line).** Arturo does not care
+  about newlines — multi-line code of **any length** can be compressed onto a
+  single line, as long as the spaces/separators stay intact and **there is no
+  `;` comment anywhere in that one line**. This is safe and common.
+- **Corrected (the `;` trap when compressing).** The moment you put a `;`
+  comment inside code that is being compressed to one line, everything **after
+  the `;` on that same line is silently discarded** — it becomes a comment, so
+  the rest of the compressed code never runs (and if the line later references
+  those discarded definitions, it errors). Rule of thumb:
+  - Single-line/compressed code ⇒ **strip all `;` comments first**; or keep the
+    code on multiple lines so each `;` comment ends at its own line's newline.
+  - Inline `;` comments (e.g. `i: 1 ; sum 1..100`) are only safe when the line
+    genuinely ends right after the comment — never when more real code follows
+    on the same physical line.
 - **Corrected (inline comments).** Inline `;` comments after code DO work and
   are used throughout the official examples:
   ```arturo
