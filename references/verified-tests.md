@@ -191,7 +191,7 @@ Official examples and runtime behavior agree that integer operands behave as fol
 35 // 4    ; 8.75
 ```
 
-This spelling is easy for Python users to reverse accidentally. `%` is modulo and `^` is power. Arturo's general right-to-left evaluation and infix precedence can make visually nested calls surprising; parentheses are recommended when translating nontrivial Python expressions. The smoke suite confirms representative prefix/infix combinations, not every precedence edge case.
+This spelling is easy for Python users to reverse accidentally. `%` is modulo and `^` is power. Arturo's general right-to-left evaluation — with **no operator precedence at all** (infix operators are just aliases of prefix functions and also group right-to-left) — can make visually nested calls surprising; parentheses are recommended when translating nontrivial Python expressions. The smoke suite confirms representative prefix/infix combinations, not every grouping edge case.
 
 ## 9. Source/version drift
 

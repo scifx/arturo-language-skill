@@ -17,6 +17,7 @@ point — flagged clearly.
 |---|---|---|
 | prefix, right-to-left, arity-driven | prefix-free, left-to-right | group with `(...)` in Arturo |
 | `x: 3` binds | `x = 3` assigns | Arturo `=` is **compare**, not assign |
+| `'x` literal = **pointer** to x | `'x` ≈ `"x"` symbol | `var 'x` dereferences, `let 'x v` writes through, `sort 'x` mutates in place |
 | `;` comment | `#` comment | `;` eats the rest of the physical line |
 | whitespace only (spaces) | indentation blocks | compressible to one line if no `;` |
 
@@ -110,7 +111,9 @@ i: 0  while [i<3][ ... inc 'i ]  ; Python: while i<3: ... i += 1
 | chars | `split "hello"` → `[h e l l o]` | `list("hello")` | ✅ |
 | words | `split.words "hello world"` | `"hello world".split()` | ✅ |
 | first/last | `first s`, `last s` | `s[0]`, `s[-1]` | ✅ |
-| concat | `"Hello " ++ "World!"` | `"Hello " + "World!"` | ✅ (`++` not `+`) |
+| concat | `"Hello " ++ "World!"` | `"Hello " + "World!"` | ✅ (`++` is `append`; **strings only** — `"a" ++ 0` breaks: convert first `(to :string 0) ++ "a"`, or `~"|0|a"`, or `print ["a" 0]`) |
+| triple-quoted raw | `«« ... »»` (multi-line, raw, no interpolation) | `"""..."""` | ✅ |
+| single-line raw | `« text` (rest of line = one raw string) | (no direct equivalent) | ✅ |
 | join | `join.with:"-" ["hello" "world"]` | `"-".join([...])` | ✅ |
 | convert | `to :string 123`, `to :integer "123"` | `str(123)`, `int("123")` | ✅ |
 | prefix/suffix | `prefix? s "he"`, `suffix? s "he"` | `s.startswith`, `s.endswith` | ✅ |
@@ -212,6 +215,14 @@ sayHello: function [this :person][ print ["Hello" this\name] ]
 11. **`;` comments eat the rest of the line** — never put one mid compressed
     single-line code.
 12. **Zero-based, prefix, arity-driven, whitespace-only.**
+13. **No operator precedence at all** — infix chains also group right-to-left
+    (`2 * 3 + 4` == `2*(3+4)` == 14).
+14. **`++` concatenates strings only** (`append`); everything else must go
+    through `to :string` / `~"..."` / `print [a b c]`.
+15. **Mutable values are passed by reference** — `b: a` aliases `a`; use
+    `new` to copy before mutating independently.
+16. **Blocks have no scope** (variables leak out); iterators restore injected
+    vars; functions isolate; `.inline` makes a function scope-less.
 
 ## 11. Where to confirm a behavior at runtime
 

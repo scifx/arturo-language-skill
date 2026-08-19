@@ -136,6 +136,53 @@ back to a curl command. The **mini** build often returns `null` for HTTPS
 `request`, so a curl fallback is important there. Build curl args with `++`
 concatenation, not `~{|url|}` (template would execute interpolation).
 
+The minimal GET/POST forms from agent-shell.art, both runtime-verified in this
+repo against a local HTTP server:
+
+```arturo
+; GET — empty dict as data, take 'body
+body: request.get url #[] | get 'body
+
+; POST — attributes for headers, .json sends a JSON body
+h: #["Content-Type": "application/json"]
+r: request.post .headers: h .json "http://127.0.0.1:18099/api" #[a: 1]
+body: r | get 'body | read.json      ; parse the JSON response string
+```
+
+## JSON as data: `read.json`, `write.json x null`, `read.toml`
+
+**Runtime-verified against 0.10.1-dev+43 + agent-shell.art usage.** Arturo's
+JSON story is simpler than it looks, and slightly different from what older
+notes assumed:
+
+```arturo
+; parse a JSON *string* directly — no file needed
+j: read.json "{\"a\": 1, \"b\": \"hi\"}"
+print j\a                     ; 1
+
+; read a JSON *file* — same function, pass a path
+tool: read.json ./"tools.json"
+
+; serialize a value to a JSON *string* — pass null as the file arg
+s: write.json #[a: 1] null
+; → "{\n    \"a\": 1\n}"      ; print it or embed it in a response
+
+; write a JSON *file*
+write.json store "data/feeds.json"
+write.json.compact val "data/_out.json"
+
+; TOML config files
+c: read.toml ./"config.toml"
+print c\local\model
+```
+
+**Corrected (trap):** `parse.json "..."` does **not** parse JSON in this
+build — `parse` only has a `.data` attribute, so `parse.json` silently
+returns the input string unchanged and downstream `\field` access fails with
+"Unsupported key". Always use `read.json` for JSON text and `read.toml` for
+TOML. (`render.json` does not exist either — serialize with
+`write.json value null`.)
+
 ## Read-state: don't rely on a `:store` handle inside functions
 
 **Verified** (`Collections.nim`). `key?` accepts only `:dictionary`/`:object`,
@@ -154,7 +201,7 @@ saveState: function [path val][
     write.json.compact val path
 ]
 loadState: function [path][
-    if exists? path -> do [parse read path]
+    if exists? path -> do [read.json path]   ; read.json parses the file
     else -> []
 ]
 
@@ -162,7 +209,7 @@ loadState: function [path][
 serve.port: 8765 [
     GET "/api/items" $[
         items: loadState "data/items.json"
-        print render.json items      ; returns a JSON string body
+        print write.json items null   ; JSON string body (render.json does not exist)
     ]
 ]
 ```
