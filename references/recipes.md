@@ -73,6 +73,36 @@ silently returns the input string unchanged. Use `read.json` for JSON text.
 Query `info 'parse`, `info 'read`, `info 'write`, `info 'to` on your target
 build before relying on attribute names.
 
+## Doc strings: document your own functions (`;;` data comments)
+
+Give your functions builtin-style help with `;; key: value` comments in the
+body — then `info 'fn` and `info.get 'fn | get 'example` work on them:
+
+```arturo
+fetch: function [url :string][
+    ;; description: « fetch a URL and return its body
+    ;; options: [
+    ;;      timeout: :integer « request timeout in seconds
+    ;; ]
+    ;; returns: :string
+    ;; example: {
+    ;;      print fetch "https://example.com"
+    ;; }
+
+    default 'timeout 30        ; optional-param helper (see below)
+    ~"GET |url| timeout=|timeout|"
+]
+
+info 'fetch                    ; shows description/options/returns
+ex: info.get 'fetch | get 'example
+do ex\0                        ; runs the example
+```
+
+Keys: `description`, `options: [...]`, `returns`, `example: {...}` (values:
+`« text` for one line, `{...}` for multi-line). Pairs with the `default`
+helper for documented keyword arguments. `;;` at script top-level instead
+documents the file (read via the `script` builtin).
+
 ## Default / optional parameters (attribute stack + `default` helper)
 
 Arturo has no `def f(x=1, y=2)`; the idiomatic equivalent combines attributes

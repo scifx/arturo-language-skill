@@ -239,6 +239,34 @@ complete + lib/* + tools/*/tool.art+tool.json + skills/*/SKILL.md + useful/*),
 
 ---
 
+# 第八轮:doc string — 让 info 文档化自定义函数 (2026-08-19)
+
+作者介绍关键工具:函数内用 `;;` 数据注释定义帮助,`info` 即可查到自定义函数
+的接收参数和返回值约定。第一版对照错误文档(script 页面),作者指正后改用
+**`documentation/library/core/function`**(其中 "adding complete documentation
+for user function using data comments" 官方示例)。完整实测:
+
+| 验证项 | 结果 |
+|---|---|
+| 函数体顶部 `;; description: « ...` → `info 'fn` 显示描述 | ✅ |
+| `;; options: [mul: :integer « ...]` → `info 'fn` 显示 `.mul :integer -> ...` | ✅ |
+| `;; returns: :integer :floating` → `info 'fn` 显示返回类型 | ✅ |
+| `;; example: {...}` → `info.get 'fn \| get 'example` 返回可 `do` 运行的块 | ✅ `do ex\0` 输出正确 |
+| `info.get 'fn` 返回 7 键: name/address/type/description/args/attrs/returns/example | ✅ |
+| 函数级不支持覆盖 name/module/author(脚本级 `;;` 才进 `script` 字典) | ✅ 实测 |
+| 与 `default` helper 组合: doc string 声明 options + `default 'timeout 30` 读取 | ✅ 综合示例 |
+| 值格式: `« text` 单行、`{...}` 多行、options 块 `label: :type « 说明` | ✅ |
+
+**关键结论**: `;; key: value` 让自定义函数获得与内建词完全一致的
+`info`/`info.get` 体验——自文档化模块。结合 `default` helper 可声明带文档的
+关键字参数。脚本级 `;;`(author/year/...)走 `script` 内建(首次错误版本已纠正)。
+
+文档变更: practical-rules.md(doc string 章节,官方格式+验证细节)、SKILL.md
+(核心规则补 doc string 行)、recipes.md(doc string recipe)、VERIFICATION.md
+(本轮)。冒烟测试双 build PASS。
+
+---
+
 # 第七轮:« ««»» 安全字符串 — 验证并提炼 (2026-08-19)
 
 作者提出 `«`/`««»»` 写法是"最安全不混淆的纯字符串"(`««»»` 类似 Python

@@ -537,6 +537,70 @@ a null default; whether attributes flow into it depends on the runtime
 version. For portable code, always pair the declaration with an explicit
 `attr`/`default` read.
 
+## Doc strings: make `info` document YOUR functions (`;;` data comments)
+
+**Runtime + official-doc verified (`documentation/library/core/function`,
+"adding complete documentation for user function using data comments").**
+Just as builtins carry `info` metadata, *your* functions can too: put
+`;; key: value` **data comments** at the top of the function body, and
+`info 'fn` / `info.get 'fn` will show them — description, custom options,
+returns, and a runnable example, exactly like builtins:
+
+```arturo
+addThem: function [
+    x :integer :floating
+    y :integer :floating
+][
+    ;; description: « takes two numbers and adds them up
+    ;; options: [
+    ;;      mul: :integer « also multiply by given number
+    ;; ]
+    ;; returns: :integer :floating
+    ;; example: {
+    ;;      print addThem 10 20
+    ;;      print addThem.mult:3 10 20
+    ;; }
+
+    mult?: attr 'mult
+    switch not? null? mult?
+        -> return mult? * x + y
+        -> return x + y
+]
+
+info 'addThem
+; |--------------------------------------------------------------------------------
+; |        addThem  :function
+; |--------------------------------------------------------------------------------
+; |                 takes two numbers and adds them up
+; |          usage  addThem x :integer :floating
+; |                         y :integer :floating
+; |        options  .mul :integer -> also multiply by given number
+; |        returns  :integer :floating
+; |--------------------------------------------------------------------------------
+```
+
+Verified details:
+
+- **Supported keys (function-level):** `description`, `options: [...]`,
+  `returns`, `example: {...}`. `name`/`module`/`author` are NOT overridable
+  at function level (name stays the binding; module/author are script-level
+  `;;` keys via the `script` builtin).
+- **Value forms:** single-line `« text` (safe string) or `{...}` for
+  multi-line; `options` is a block of `label: :type « explanation` entries.
+- **`example` behaves exactly like a builtin's**: `info.get 'fn | get
+  'example` returns a `:block` of string segments, each runnable with `do`.
+- **`info.get 'fn`** returns the same 7 keys as user functions:
+  `name address type description args attrs returns example`.
+- **Pairs perfectly with the `default`/`attr` helper**: declare your
+  attribute-style options in the doc string AND read them via
+  `default 'timeout 30`, so callers get documented keyword arguments.
+- `;;` collects script-level metadata too (author/year/license/description/
+  hint/export) — read it with the `script` builtin (`inspect script`); but
+  inside a function body it attaches to THAT function's info.
+- Rule of thumb: write the doc string for every non-trivial function you
+  define — it makes your whole module self-documenting through the same
+  `info`/`info.get` loop used for builtins.
+
 ## The `standalone?` main-guard idiom (project pattern)
 
 Files that double as libraries and programs wrap their entry code in
