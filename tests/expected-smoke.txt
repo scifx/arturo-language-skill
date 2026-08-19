@@ -1,0 +1,13 @@
+hello
+5
+36
+1 4 9 16 25 
+2 4 6 8 10 
+Ada
+Ada is 37
+a,b,c
+no
+two
+10
+15
+map

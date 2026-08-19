@@ -1,0 +1,103 @@
+#!/bin/sh
+# Fast Arturo help: runtime info when available, offline CSV lookup always.
+# Requires only POSIX sh + awk. Python is not required.
+set -eu
+
+SELF_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+ROOT=$(CDPATH= cd -- "$SELF_DIR/.." && pwd)
+INDEX="$ROOT/references/library-index.csv"
+
+# Optional user-local configuration. This is shell syntax; only use a trusted file.
+if [ -f "$ROOT/config.env" ]; then
+    # shellcheck disable=SC1091
+    . "$ROOT/config.env"
+fi
+ARTURO_BIN=${ARTURO_BIN:-arturo}
+LATEST=0
+SEARCH=0
+OFFLINE=0
+LIMIT=${AHELP_LIMIT:-20}
+
+usage() {
+    cat <<'EOF'
+Usage: ahelp [options] SYMBOL_OR_TERM
+  -s, --search      substring search (offline index)
+  -l, --latest      prefer /latest URL; falls back when known 404
+  -o, --offline     do not invoke Arturo runtime
+  -n, --limit N     maximum index results (default 20)
+  -h, --help        show this help
+Environment: ARTURO_BIN=/path/to/arturo  AHELP_LIMIT=20
+For a query beginning with '-', use: ahelp -- '--'
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -s|--search) SEARCH=1; shift ;;
+        -l|--latest) LATEST=1; shift ;;
+        -o|--offline) OFFLINE=1; shift ;;
+        -n|--limit) [ "$#" -ge 2 ] || { usage >&2; exit 2; }; LIMIT=$2; shift 2 ;;
+        -h|--help) usage; exit 0 ;;
+        --) shift; break ;;
+        -*) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+        *) break ;;
+    esac
+done
+[ "$#" -eq 1 ] || { usage >&2; exit 2; }
+QUERY=$1
+
+# Resolve common operator aliases for index lookup; runtime still receives original alias.
+case "$QUERY" in
+    '++') LOOKUP=append ;; '--') LOOKUP=remove ;; '+') LOOKUP=add ;; '-') LOOKUP=sub ;;
+    '*') LOOKUP=mul ;; '/') LOOKUP=div ;; '//') LOOKUP=fdiv ;; '%') LOOKUP=mod ;;
+    '^') LOOKUP=pow ;; '=') LOOKUP='equal?' ;; '<') LOOKUP='less?' ;; '>') LOOKUP='greater?' ;;
+    '=<') LOOKUP='lessOrEqual?' ;; '>=') LOOKUP='greaterOrEqual?' ;; '<>') LOOKUP='notEqual?' ;;
+    '..') LOOKUP=range ;; '@') LOOKUP=array ;; '#') LOOKUP=dictionary ;; '$') LOOKUP=function ;;
+    '~') LOOKUP=render ;; '<<') LOOKUP=read ;; '>>') LOOKUP=write ;; '??') LOOKUP=coalesce ;;
+    *) LOOKUP=$QUERY ;;
+esac
+
+# Only pass safe Arturo symbol characters into generated code.
+if [ "$OFFLINE" -eq 0 ] && command -v "$ARTURO_BIN" >/dev/null 2>&1; then
+    case "$QUERY" in
+        *[!A-Za-z0-9_?+*/%\<\>\=\~\|@#\$^.-]*)
+            echo "Skipping runtime info: query is not a single safe Arturo symbol." >&2 ;;
+        *)
+            echo "--- Arturo runtime: info '$QUERY ---"
+            "$ARTURO_BIN" --no-color -e "info '$QUERY" || true
+            echo "--- Official documentation index ---"
+            ;;
+    esac
+elif [ "$OFFLINE" -eq 0 ]; then
+    echo "Arturo runtime not found ($ARTURO_BIN); using offline index." >&2
+fi
+
+# CSV fields contain no embedded commas in the indexed columns used here.
+awk -F',' -v q="$LOOKUP" -v fuzzy="$SEARCH" -v latest="$LATEST" -v max="$LIMIT" '
+BEGIN { ql=tolower(q); count=0 }
+NR==1 { next }
+{
+    name=$1; module=$2; stable=$3; latest_url=$6; latest_status=$7
+    gsub(/\r/, "", latest_status)
+    hit = fuzzy ? (index(tolower(name), ql) || index(tolower(module), ql)) : (tolower(name)==ql)
+    if (hit && count < max) {
+        url=stable; note=""
+        if (latest) {
+            if (latest_status=="200") url=latest_url
+            else note=" [latest=" latest_status "; stable fallback]"
+        }
+        print name "\t" module "\t" url note
+        count++
+    }
+}
+END {
+    if (count==0) exit 3
+}
+' "$INDEX" || {
+    status=$?
+    if [ "$status" -eq 3 ]; then
+        echo "No indexed match for: $QUERY (try -s for substring search)" >&2
+        exit 1
+    fi
+    exit "$status"
+}

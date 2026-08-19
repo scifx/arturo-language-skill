@@ -1,0 +1,25 @@
+; Arturo 0.10.0 smoke tests
+print "hello"
+x: 2
+print x + 3
+square: function [n :integer][n * n]
+print square 6
+print map 1..5 'n -> n * n
+print select 1..10 'n -> even? n
+user: #[name: "Ada" age: 37]
+print user\name
+print ~"|user\name| is |user\age|"
+print join.with:"," ["a" "b" "c"]
+print (2 > 3)? -> "yes" -> "no"
+when [
+    x=1 -> print "one"
+    x=2 -> print "two"
+    true -> print "other"
+]
+total: 0
+loop 1..4 'n -> 'total + n
+print total
+f: $[a,b][a+b]
+print f 7 8
+meta: info.get 'map
+print meta\name
