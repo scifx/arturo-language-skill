@@ -126,6 +126,7 @@ See `references/practical-rules.md`.
 - Integer operands: `/` gives integer-style division; `//` gives floating division—the spelling differs from Python.
 - A trailing `!` is parser/evaluation sugar used especially in `import "pkg"!`.
 - Full and Mini builds differ. Mini lacks UI, HTTPS, database, package-manager, parser, and arbitrary-precision features listed in official build docs.
+- **The whole language is discoverable locally.** Every keyword lives in the standard library; `symbols | keys | print` lists them all, and `info 'x` / `info.get 'x | get 'example` reveal each one's usage, options, returns, **and a runnable example**. With those three, you can look up and write almost any Arturo program without the internet — so query before you guess.
 - **Never invent a standard-library signature. Query `info` first.**
 
 ## Common symbols: direct official pages

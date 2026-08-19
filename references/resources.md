@@ -23,6 +23,15 @@ Use this to jump straight to the source for a given need — no searching.
 
 The **AI training material gist** (`https://gist.github.com/drkameleon/93331d1da47493effaa3b7f7c562ed62`) is the single best offline summary: it contains the full syntax overview plus a compact word-list reference. Download it once and keep it with the skill for fast lookups.
 
+### Modularity / OOP pages (quick refs)
+
+| Topic | Official page |
+|---|---|
+| `import` (packages, local files, `!`) | `https://arturo-lang.io/documentation/library/core/import` |
+| `module` (create a module) | `https://arturo-lang.io/documentation/library/core/module` |
+| `define` (custom types/classes) | `https://arturo-lang.io/documentation/library/types/define` |
+| Exceptions / `try` / `error?` | `https://arturo-lang.io/documentation/library/exceptions/` |
+
 ## Canonical sites
 
 | Purpose | URL |

@@ -201,6 +201,12 @@ verified against the v0.10.0 source checkout and the official examples corpus:
   examples), e.g. `i: 1 ; sum 1..100`.
 - `switch` (alias `?`) is the if/else construct; `if` is single-branch only;
   multi-branch uses `when`/`case` (`src/library/Core.nim`).
+- Attributes sit on the stack and a keyword can capture/consume an attribute of
+  the same name when it evaluates; it is real but fragile, so prefer explicit
+  attribute syntax (`sort.descending`, `join.with:"`). Consistent with the
+  attribute model in `src/library/*.nim` and `src/vm/ast.nim`.
+- Newlines are insignificant (whitespace-only syntax); `;` comments out the
+  rest of the line. Confirmed by official examples.
 
 ## 10. Helper verification
 

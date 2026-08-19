@@ -51,6 +51,18 @@ arturo`.
   grouping is not what standard math would give you.** `2 + 3 * 5` is 17 (it
   happens to match), but `3 * 5 + 2` is **21**, not 17. Write `(3 * 5) + 2`
   when you mean 17.
+- **Verified (parenthesize nested/compared infix).** When an infix result feeds
+  another comparison or operation, group it explicitly:
+  ```arturo
+  (1 + 2) * 3            ; parenthesize the addition first
+  if (1 > 0) < 3 [ ... ] ; group the comparison so it is the operand
+  ```
+  Right-to-left association makes ungrouped chains easy to misread; always
+  parenthesize mixed infix.
+- **Verified (whitespace-only, one-line style).** Arturo does not care about
+  newlines — code can be written on a single line separated by spaces (and
+  often is). The only line-sensitive token is `;`, which comments out the rest
+  of that line.
 - **Corrected (inline comments).** Inline `;` comments after code DO work and
   are used throughout the official examples:
   ```arturo
@@ -74,6 +86,13 @@ arturo`.
   ```
 - **Verified.** `define` declares a custom type; `module` creates a module;
   `import` loads packages. Query each with `info` before relying on a variant.
+- **Verified (attribute capture on the stack).** A keyword consumes arguments
+  arity-driven; attributes select the variant. A subtle consequence: if a
+  keyword with the same name is declared as an attribute on the stack, the
+  keyword will **capture and consume** that attribute when it evaluates. This
+  is a real mechanism (attributes sit on the stack and get consumed), but it is
+  fragile — **do not rely on it**. Prefer explicit attribute syntax
+  (`sort.descending xs`, `join.with:\",\" xs`).
 
 ## Importing local files: the `./...!` pattern
 
