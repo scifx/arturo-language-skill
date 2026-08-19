@@ -26,8 +26,8 @@ Use this skill to produce **version-aware, tested Arturo**, not plausible-lookin
 
 1. **词 = 功能条目(查字典写代码)。** 每个词(`print` `map` `sort` `digest`...)
    就是一个函数/值。写代码前先查字典: `info '词`(或 `./bin/ahelp 词`)给出
-   签名、属性、返回值和**可运行的官方示例**——照着示例改就是正确代码。521 个
-   词全部可本地查询,不靠猜。
+   签名、属性、返回值和**可运行的官方示例**——照着示例改就是正确代码;`inspect 值`
+   查值的运行时结构。521 个词全部可本地查询,不靠猜。
 2. **词 + `.属性` = 功能扩展。** `sort` → `sort.descending`(布尔属性)、
    `sort.by: 'x`(带值属性);`join` → `join.with: ","`;`read` → `read.json`
    `read.toml` `read.xml` `read.lines`。同一个词,点号一加就是新变体。属性本质
@@ -87,14 +87,15 @@ export ARTURO_BIN="$PWD/bin/arturo"    # optional; bin/ahelp auto-detects the bu
 
 **If no runtime can be run in this environment**, do not guess signatures: use the offline path `./bin/ahelp name` and the reference files, and say so when reporting results. Do not invent a signature you cannot run.
 
-## Start here: the two key lookup forms (查字典)
+## Start here: the three lookup forms (查字典)
 
-**There are exactly two lookup forms — memorize both, they are the whole
-"dictionary":**
+**There are exactly three lookup forms — memorize all three, they are the
+whole "dictionary":**
 
 ```arturo
 info 'x                  ; form #1: print formatted help (signature, attrs, returns)
 info.get 'x | get 'example   ; form #2: the official runnable example, offline
+inspect x                ; form #3: print a VALUE's runtime structure
 ```
 
 ### Form #1: `info 'x` — human-readable help
@@ -132,7 +133,32 @@ do ex\0                                 ; RUN it right there
 - 20/20 sampled keywords across all modules had an `example`; the standard
   library embeds examples for essentially every keyword.
 
-**All of this is local and offline.** Once a runtime is installed, these two
+### Form #3: `inspect x` — see a VALUE's structure (the runtime struct)
+
+While `info`/`info.get` describe the *word* (its signature and metadata),
+`inspect` describes the *value*: it recursively prints the type structure of
+whatever you hand it — dictionary keys, block nesting, function params/body,
+error details, date fields, etc. (signature: `inspect value :any`; options
+`.muted` no color, `.compact` omit type annotations, `.index` show block
+indexes).
+
+```arturo
+inspect #[name: "Ada" age: 37]     ; :dictionary with field types
+inspect [1 2 [3 4]]                ; :block, nested block shown
+inspect now                        ; :date with all its fields
+err: try [ 1 / 0 ]
+inspect err                        ; Arithmetic Error: Division by zero...
+inspect $[x][x*2]                  ; :function, params and body blocks
+inspect.compact meta\attrs         ; compact view of a nested dict
+```
+
+Use it to answer "what does this value actually look like at runtime?" —
+e.g. what a function *returns*, or what keys a dictionary really has —
+when `info` only shows the signature. `inspect` + `info`/`info.get` together
+are the local debug loop: check the word's contract, then inspect the actual
+value.
+
+**All of this is local and offline.** Once a runtime is installed, these
 forms give you usage, options, return type, **and a runnable example for
 every keyword without any internet access.** This is the fastest way to write
 correct code: query the keyword → read its `example` → adapt it. For symbol
@@ -249,7 +275,7 @@ mental shifts. Full runtime-verified details live in
 - A trailing `!` is parser/evaluation sugar: it wraps the rest in a `do` block, used after `import "pkg"!`, `to :type [...]!`, and computed calls.
 - JSON/TOML as data: `read.json` parses a JSON string *or* file path; `write.json value null` returns a JSON string (and `write.json value "file"` writes); `read.toml` reads config. Do **not** use `parse.json` — `parse` has no `.json` attribute in this build (it silently returns the input string).
 - Full and Mini builds differ. Mini lacks UI, HTTPS, database, package-manager, parser, and arbitrary-precision features listed in official build docs.
-- **The whole language is discoverable locally.** Every keyword lives in the standard library; `symbols | keys | print` lists them all, and `info 'x` / `info.get 'x | get 'example` reveal each one's usage, options, returns, **and a runnable example**. With those three, you can look up and write almost any Arturo program without the internet — so query before you guess.
+- **The whole language is discoverable locally.** Every keyword lives in the standard library; `symbols | keys | print` lists them all, `info 'x` / `info.get 'x | get 'example` reveal usage, options, returns, **and a runnable example**, and `inspect value` shows a value's runtime structure. With these, you can look up and write almost any Arturo program without the internet — so query before you guess.
 - **Never invent a standard-library signature. Query `info` first.**
 
 ## Common symbols: direct official pages

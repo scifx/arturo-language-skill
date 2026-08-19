@@ -213,5 +213,13 @@ diff -u expected.txt actual.txt
 For API discovery during a test:
 
 ```arturo
-inspect info.get 'map
+inspect info.get 'map      ; metadata dict of a word
+inspect someValue          ; runtime structure of any value (dict/block/error/date/...)
+inspect.compact someValue  ; compact, no type annotations
+inspect.index items        ; show block item indexes
 ```
+
+`inspect` answers "what does this value look like right now?" — keys of a
+returned dictionary, nesting of a block, the content of an `try`-error —
+while `info 'x` answers "what does this word accept/return?". Use both in
+your debug loop.

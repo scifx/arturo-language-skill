@@ -14,6 +14,7 @@ doubt, always confirm with `info 'name` / `./bin/ahelp`.
 ./bin/arturo --no-color -e "info 'print"      # help: usage, options, returns (like --help)
 ./bin/arturo --no-color -e "info.get 'print"  # deeper info as a dictionary object
 ./bin/arturo --no-color -e "info.get 'print | get 'example"  # the official runnable example block
+./bin/arturo --no-color -e "inspect #[a:1]"   # a VALUE's runtime structure
 ```
 
 **Verified.** `symbols` returns a `:dictionary` of the current symbols;
@@ -21,6 +22,20 @@ doubt, always confirm with `info 'name` / `./bin/ahelp`.
 `info` prints a formatted help block; `info.get` returns a dictionary (the
 `.get` attribute is defined on `info`). `example` inside that dictionary holds
 the official example(s) — extremely useful for writing correct code locally.
+
+**`inspect` is the value-structure twin of `info`** (signature
+`inspect value :any`, options `.muted`/`.compact`/`.index`). Use it to see
+what a value *actually* looks like at runtime — recursive, type-annotated:
+dictionary keys+types, nested blocks, function params/body, error details
+(`inspect (try [1/0])` shows `Arithmetic Error: Division by zero ...`), date
+fields (`inspect now` shows year/month/day/hour/...), colors, etc. The
+division of labor:
+
+| Need | Use |
+|---|---|
+| signature of a word / what args it takes | `info 'x` |
+| metadata dict + official runnable examples | `info.get 'x` (literal only!) |
+| a VALUE's runtime structure (what a function returned, dict keys, error content) | `inspect x` |
 
 ## Installation
 

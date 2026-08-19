@@ -239,6 +239,28 @@ complete + lib/* + tools/*/tool.art+tool.json + skills/*/SKILL.md + useful/*),
 
 ---
 
+# 第六轮:inspect 值结构查询 — 验证并写入经验 (2026-08-19)
+
+作者指出第三个查询手段:`inspect x` 可以查当前值的结构(struct)。完整验证:
+
+| 验证项 | 结果 |
+|---|---|
+| `inspect` 签名: `inspect value :any`,返回 `:nothing` | ✅ |
+| 选项 `.muted`(去色)/ `.compact`(省类型注解)/ `.index`(块项加 `[i]` 下标) | ✅ 实测 |
+| 字典 → 递归展示每个键的类型 | ✅ `#[name:"Ada" age:37]` → `name : Ada :string / age : 37 :integer` |
+| 嵌套块 → 递归展开子块 | ✅ |
+| 函数 → 展示参数块和函数体块 | ✅ `$[x][x*2]` → 两个 `:block`(x :word / x * 2) |
+| 错误值 → 类型+信息+值 | ✅ `inspect (try [1/0])` → `Arithmetic Error: Division by zero, With value: 0 :integer, :error` |
+| 日期 → 全部字段 | ✅ `now` → hour/minute/second/nanosecond/day/Day/days/month/Month/year/utc/timestamp |
+| 颜色 → `#FF0000 :color`;`info.get` 元数据 → 完整递归结构 | ✅ |
+| 与 `info` 的分工: info 查"词"签名, inspect 查"值"结构 | ✅ 实验确认(request 返回 null 时 inspect 显示 `null :null`) |
+
+三者闭环写入 skill: **`info 'x` 查词签名 → `info.get 'x` 查元数据+官方示例 → `inspect x` 查值的运行时结构**。
+
+文档变更: SKILL.md(Start here 改名"three lookup forms",新增 Form #3 inspect 段,核心规则与思维模式第 1 条同步)、practical-rules.md(查字典章节加 inspect + 分工表)、recipes.md(调试技巧段补 inspect 选项)。冒烟测试双 build PASS。
+
+---
+
 # 第五轮:info.get example 验证 + 对照作者资料文档补漏 (2026-08-19)
 
 ## 1. `info.get 'x | get 'example` 关键写法 — 完整验证(作者要求"作为关键写入")
