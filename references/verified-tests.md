@@ -211,6 +211,17 @@ verified against the v0.10.0 source checkout and the official examples corpus:
   single-line code must have **no** `;` comments, or the rest of the line is
   silently dropped. Confirmed by official examples and parser behavior.
 
+## 9c. In-a-nutshell vs Python execution verification
+
+Every row in `references/in-a-nutshell-vs-python.md` was verified: the Python
+expressions were **executed** in this sandbox (Python 3.11) and produced the
+recorded outputs; the Arturo side was checked against v0.10.0 source semantics
+and the official in-a-nutshell documented outputs. Spot-checked equivalences
+(all matched): `35/4`↔`35//4`=8, `35//4`↔`35/4`=8.75, `2^5`↔`2**5`=32,
+`1..10` inclusive vs Python `range` exclusive, `select` keeps / `filter` drops,
+`and?`/`or?` short-circuit, string upper/lower/split/join/contains, list
+map/select/filter/unique/slice/repeat, and 0-based backslash indexing.
+
 ## 10. Helper verification
 
 The following helper paths were exercised:

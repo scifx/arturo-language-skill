@@ -10,7 +10,8 @@ Use this to jump straight to the source for a given need — no searching.
 |---|---|---|
 | Run/local help for any symbol | `info 'x`, `info.get 'x \| get 'example` (local, offline) | see `practical-rules.md` |
 | Download / install Arturo | Official site or Releases | `https://arturo-lang.io/` · `https://github.com/arturo-lang/arturo/releases` |
-| 15-minute language tour | In a nutshell | `https://arturo-lang.io/documentation/in-a-nutshell` |
+| 15-minute language tour | In a nutshell (online) | `https://arturo-lang.io/documentation/in-a-nutshell` |
+| 15-minute tour, Arturo↔Python (local, verified) | `references/in-a-nutshell-vs-python.md` | side-by-side with observed outputs |
 | Language design & philosophy | Language reference | `https://arturo-lang.io/documentation/language` |
 | CLI flags & package commands | Command line | `https://arturo-lang.io/documentation/command-line` |
 | Every keyword with examples | Standard library index | `https://arturo-lang.io/documentation/library` |

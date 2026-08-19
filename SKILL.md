@@ -102,6 +102,7 @@ Copy `config.env.example` to `config.env` for persistent local overrides. Never 
 | Unknown function name/concept | `./bin/ahelp -s TERM` | none |
 | Syntax/evaluation question | read this file's quick rules, then `references/syntax-cheatsheet.md` only if needed | at most one |
 | Gotchas / idioms / correct usage | `references/practical-rules.md` (string forms, infix right-to-left, `import ...!`, template safety, error handling) | one |
+| 15-minute tour vs Python (learn fast) | `references/in-a-nutshell-vs-python.md` | one |
 | Python translation | `references/python-to-arturo.md` | one |
 | Version/build discrepancy | `references/verified-tests.md` | one |
 
@@ -159,7 +160,8 @@ Base URL: `https://arturo-lang.io/`. Predicate `?` often becomes `-` in a slug, 
 7. Read at most the one relevant deep reference unless diagnosing version drift:
    - syntax → `references/syntax-cheatsheet.md`
    - gotchas/idioms → `references/practical-rules.md`
-   - Python comparison → `references/python-to-arturo.md`
+   - 15-min tour vs Python (learning) → `references/in-a-nutshell-vs-python.md`
+   - Python translation → `references/python-to-arturo.md`
    - task recipes → `references/recipes.md`
    - links/source/package routes → `references/resources.md`
    - compatibility/evidence → `references/verified-tests.md`

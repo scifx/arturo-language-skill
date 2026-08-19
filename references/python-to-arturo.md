@@ -1,5 +1,9 @@
 # Python → Arturo comparison
 
+> See also `in-a-nutshell-vs-python.md` for an execution-verified, side-by-side
+> 15-minute tour (values, arithmetic, loops, strings, blocks, functions, custom
+> types) with observed outputs. This file is the compact conceptual map.
+
 This is a conceptual translation map, not a claim of identical semantics.
 
 | Intent | Python | Arturo |
