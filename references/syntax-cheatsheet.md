@@ -122,6 +122,11 @@ Control words include `break`, `continue`, `return`, `while`, `until`, and `loop
 
 ```arturo
 s: "hello"
+safe1: « rest of this line is ONE raw string with "quotes" |pipes| {braces}
+safe2: ««
+    multi-line raw string — keeps indentation & newlines
+    a lone » is fine; only »» ends it
+»»
 multi: {
     indentation-normalized multiline text
 }
@@ -135,6 +140,11 @@ print upper s
 print split.words "a b"
 print join.with:"," ["a" "b"]
 ```
+
+Safe strings `«`/`««»»` are the Python triple-quote equivalent: fully raw,
+no escapes, no interpolation — the safest way to hold HTML/SQL/JSON/code
+text. Single `«` takes the whole rest of the line (nothing after it is code);
+double `««...»»` ends only at the first `»»`.
 
 `++` is `append`, so string concatenation works **only between strings**:
 `"a" ++ "b"` → `"ab"`, but `"a" ++ 0` produces a broken value (silently in

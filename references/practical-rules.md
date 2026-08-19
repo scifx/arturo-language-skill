@@ -225,21 +225,48 @@ it defined.
   ```
   Both blocks are expected; only one executes. Multi-branch uses `when`/`case`.
 
-## Strings: quotes, curly, verbatim, regex
+## Strings: quotes, curly, verbatim, regex, smart-quotes
 
 | Form | Meaning | Verified |
 |---|---|---|
-| `"text"` | normal string | ✅ |
-| `{...}` | curly/multiline string | ✅ |
+| `"text"` | normal string (escapes apply) | ✅ |
+| `« text` | **single-line safe string**: everything after `«` to end of line is ONE raw string, no escapes, no interpolation; leading/trailing whitespace stripped | ✅ |
+| `«« text »»` | **multi-line safe string** (the Python `"""..."""` equivalent): raw, keeps newlines & indentation, no interpolation; ends at the FIRST `»»`, a lone `»` is content | ✅ |
+| `{...}` | curly/multiline string (indentation-normalized) | ✅ |
 | `{:...:}` | **verbatim** string (no normalization) | ✅ |
 | `{/.../}` | **regex** string | ✅ (`{/[0-9]+/}`, `{/\w+/}`) |
 | `---...---` | triple-dash multiline template | ✅ |
-| `~"text \|x\|"` | `render` template with interpolation | ✅ |
+| `~"text \|x\|"` | `render` template with interpolation (evaluates code) | ✅ |
 
-**Corrected.** The form `{::}` is **not** a distinct "extremely complex string"
-form — `{:}` is the verbatim string opener and `{::}` is simply an *empty*
-verbatim string (used as an empty line in the official examples). There is no
-`{::}` special-cased literal. For regex use `{/.../}`, not `{::}`.
+**Safe strings (`«` / `««»»`) — the "never-misparse" pure-string form**
+(runtime + source verified: `parseFullLineString` / `parseSafeString` in
+`src/vm/parse.nim`):
+
+```arturo
+a: « this whole line is one string with "quotes" |pipes| {braces} and no \escapes
+b: ««
+    multi-line stays exactly as-is
+        indentation and blank lines preserved
+    » can appear inside; only »» ends it
+»»
+```
+
+- The point: **zero confusion**. Unlike `"..."` (escapes) or `~"..."`
+  (interpolation) or `{...}` (curly nesting rules), `«`-strings take
+  everything literally — perfect for HTML/XML/JSON/SQL/code snippets that
+  contain quotes, braces, pipes, backslashes.
+- **Single `«` eats the ENTIRE rest of the line** — nothing after it is code
+  (`x: 1 « comment-ish` leaves `x: 1` and the rest is a string). Do not put
+  code after it.
+- **Double `««...»»` ends only at `»»`** — a single `»` inside is content,
+  but a second `««` or `»»` inside WILL terminate early. Keep `««`/`»»` out
+  of the payload.
+- Python mapping: `« text` ≈ (no direct equivalent; closest is a line
+  continuation comment), `««...»»` ≈ `"""..."""` triple-quoted string.
+  Interpolation is NOT performed (unlike `~"..."`), matching Python's plain
+  triple-quote behavior.
+- `unicode.strip` is applied to single-`«` strings (leading/trailing
+  whitespace removed); `««...»»` keeps everything verbatim.
 
 ## String concatenation: `++` is `append`, strings only
 

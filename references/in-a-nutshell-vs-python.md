@@ -112,6 +112,8 @@ i: 0  while [i<3][ ... inc 'i ]  ; Python: while i<3: ... i += 1
 | words | `split.words "hello world"` | `"hello world".split()` | ✅ |
 | first/last | `first s`, `last s` | `s[0]`, `s[-1]` | ✅ |
 | concat | `"Hello " ++ "World!"` | `"Hello " + "World!"` | ✅ (`++` is `append`; **strings only** — `"a" ++ 0` breaks: convert first `(to :string 0) ++ "a"`, or `~"|0|a"`, or `print ["a" 0]`) |
+| triple-quoted raw | `«« ... »»` (multi-line, raw, no interpolation) | `"""..."""` | ✅ |
+| single-line raw | `« text` (rest of line = one raw string) | (no direct equivalent) | ✅ |
 | join | `join.with:"-" ["hello" "world"]` | `"-".join([...])` | ✅ |
 | convert | `to :string 123`, `to :integer "123"` | `str(123)`, `int("123")` | ✅ |
 | prefix/suffix | `prefix? s "he"`, `suffix? s "he"` | `s.startswith`, `s.endswith` | ✅ |

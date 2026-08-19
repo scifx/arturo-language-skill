@@ -259,7 +259,7 @@ mental shifts. Full runtime-verified details live in
   Parenthesize mixed infix chains.
 - Blocks `[ ... ]` are values/deferred code. `do block` executes one; `@block`/`array block` evaluates its items into an array.
 - A word (`x`) resolves a value. A literal (`'x`) passes the word itself—required by many iterator bindings and in-place operations.
-- Strings are `"text"`; interpolation is `~"Hello |name|"`.
+- Strings are `"text"`; interpolation is `~"Hello |name|"`; **safe strings** `« text` (rest of line, raw) and `«« ... »»` (multi-line raw, the Python `"""..."""` equivalent) hold literal text with no escapes/interpolation — safest for HTML/SQL/JSON snippets.
 - Regex literals use the curly form `{/.../}` in this build (e.g. `match.once "xabcy" {/abc/}`). Plain `/.../` is **division**, and passing a mis-parsed `/.../` expression to `match`/`contains?` can hang the runtime — verify with `info 'match` and test small regexes before relying on them. Put flags inline (`{/(?i)abc/}`), not after the closing `/`.
 - Blocks and dictionaries differ: `[1 2 3]` vs `#[name: "Ada"]`.
 - Index/member access uses backslash and is zero-based: `xs\0`, `user\name`, `xs\[i]`.
