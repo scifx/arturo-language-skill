@@ -222,6 +222,27 @@ and the official in-a-nutshell documented outputs. Spot-checked equivalences
 `and?`/`or?` short-circuit, string upper/lower/split/join/contains, list
 map/select/filter/unique/slice/repeat, and 0-based backslash indexing.
 
+## 9d. Web/HTTP project-pattern source verification
+
+The real-world web/RSS patterns in `references/web-and-http-patterns.md` were
+checked against v0.10.0 source:
+
+- `request` args are `url` + `data` (`Net.nim`); `serve` handlers return
+  strings and `.port:` is an attribute (`Net.nim`).
+- `write` args are `content` + `file`; `.directory`/`.json`/`.compact`/`.append`
+  are attributes (`Files.nim`).
+- `call` takes `(function, params-block)`; `do` evaluates a block (`Core.nim`).
+- `{/.../}` curly regex ends at the first literal `}` (`parse.nim`); trailing
+  flags `{/pattern/ims}` ARE parsed (become `(?i)`-style inline) — so the real
+  gotcha is a `}` inside the pattern, and `(?i)` inline is the safe idiom.
+- `key?` accepts only `:dictionary`/`:object`, not `:store` (`Collections.nim`).
+- No `else` keyword; two-way branch via `(cond)? [a] [b]` (`Core.nim`).
+
+Some items (e.g. `do [fn arg]` vs bare-call misbinding, `++ @[feed]` not
+splicing a dict, mini-HTTPs `request` returning `null`, serve returning a dict
+→ 500) are behavioral and marked "project experience"; re-verify on the target
+build with `info 'name` and a minimal test before relying on them.
+
 ## 10. Helper verification
 
 The following helper paths were exercised:
