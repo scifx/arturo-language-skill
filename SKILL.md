@@ -93,8 +93,14 @@ Copy `config.env.example` to `config.env` for persistent local overrides. Never 
 | Exact API but no runtime | `./bin/ahelp NAME` | none; wrapper reads index |
 | Unknown function name/concept | `./bin/ahelp -s TERM` | none |
 | Syntax/evaluation question | read this file's quick rules, then `references/syntax-cheatsheet.md` only if needed | at most one |
+| Gotchas / idioms / correct usage | `references/practical-rules.md` (string forms, infix right-to-left, `import ...!`, template safety, error handling) | one |
 | Python translation | `references/python-to-arturo.md` | one |
 | Version/build discrepancy | `references/verified-tests.md` | one |
+
+**Fast keyword self-education** (mirrors the user's workflow, all verified):
+`symbols | keys | print` lists every defined symbol; `info 'NAME` shows help;
+`info.get 'NAME | get 'example` shows the official runnable example block.
+See `references/practical-rules.md`.
 
 ## Core rules (enough for most tasks)
 
@@ -143,6 +149,7 @@ Base URL: `https://arturo-lang.io/`. Predicate `?` often becomes `-` in a slug, 
 6. On failure, trust the diagnostic. Check literal vs resolved word, arity/order, block evaluation, attributes, right-to-left grouping, and build variant.
 7. Read at most the one relevant deep reference unless diagnosing version drift:
    - syntax → `references/syntax-cheatsheet.md`
+   - gotchas/idioms → `references/practical-rules.md`
    - Python comparison → `references/python-to-arturo.md`
    - task recipes → `references/recipes.md`
    - links/source/package routes → `references/resources.md`

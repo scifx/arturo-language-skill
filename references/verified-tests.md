@@ -169,6 +169,39 @@ The stable website index contains 25 modules and 521 entries. The checked curren
 
 This means “latest” is not always a strict superset of stable. APIs may move, merge, disappear, or be generated under a different module. For nightly/current-development work, use the target runtime's `info`, then `/latest`, then current `src/library/*.nim`. Do not mechanically rewrite a stable URL by adding `/latest` and assume it exists.
 
+## 9b. Practical-rules source verification
+
+The following gotchas/idioms documented in `references/practical-rules.md` were
+verified against the v0.10.0 source checkout and the official examples corpus:
+
+- `symbols` returns a `:dictionary`; `keys symbols` is used in real code
+  (`examples/src/rosetta/Introspection.art`). `info` prints help; `info.get`
+  returns a dictionary with an `example` field (attribute `.get` defined on
+  `info` in `src/library/Reflection.nim`).
+- `import` resolves local file → local folder → repo → local/remote package
+  (`getEntryForPackage`/`processLocalFile` in `src/vm/packager.nim`); trailing
+  `!` is an execute marker that wraps the rest in a `do` (`opExec`,
+  `src/vm/ast.nim`).
+- Infix operators associate **right-to-left**: official example
+  `examples/src/rosetta/Operator precedence.art` shows `3 * 5 + 2` ==
+  `3 * (5 + 2)` == 21, not 17. Parenthesize mixed infix chains.
+- `render` (alias `~`, `src/library/Strings.nim`) **evaluates** the `|...|`
+  interpolation regions as Arturo code and is recursive by default;
+  `render.once` disables recursion. This confirms the "template can execute
+  content" caution.
+- String forms: `"..."` plain, `{...}` multiline/curly, `{:...:}` verbatim,
+  `{/.../}` regex, `---...---` triple-dash multiline. There is **no** special
+  `{::}` literal; `{::}` is just an empty verbatim string
+  (confirmed in `src/vm/parse.nim` and `examples/src/rosetta/Determine if a
+  string is collapsible.art`). No `reader` builtin exists in v0.10.0.
+- `try` returns an `:error` on failure or `null`; `error?` is the type
+  predicate; `err\kind`/`err\msg` hold error details
+  (`src/library/Exceptions.nim`, `Types.nim`).
+- Inline `;` comments after code are valid (used throughout official
+  examples), e.g. `i: 1 ; sum 1..100`.
+- `switch` (alias `?`) is the if/else construct; `if` is single-branch only;
+  multi-branch uses `when`/`case` (`src/library/Core.nim`).
+
 ## 10. Helper verification
 
 The following helper paths were exercised:
