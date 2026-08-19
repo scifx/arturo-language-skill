@@ -169,6 +169,81 @@ The stable website index contains 25 modules and 521 entries. The checked curren
 
 This means “latest” is not always a strict superset of stable. APIs may move, merge, disappear, or be generated under a different module. For nightly/current-development work, use the target runtime's `info`, then `/latest`, then current `src/library/*.nim`. Do not mechanically rewrite a stable URL by adding `/latest` and assume it exists.
 
+## 9b. Practical-rules source verification
+
+The following gotchas/idioms documented in `references/practical-rules.md` were
+verified against the v0.10.0 source checkout and the official examples corpus:
+
+- `symbols` returns a `:dictionary`; `keys symbols` is used in real code
+  (`examples/src/rosetta/Introspection.art`). `info` prints help; `info.get`
+  returns a dictionary with an `example` field (attribute `.get` defined on
+  `info` in `src/library/Reflection.nim`).
+- `import` resolves local file → local folder → repo → local/remote package
+  (`getEntryForPackage`/`processLocalFile` in `src/vm/packager.nim`); trailing
+  `!` is an execute marker that wraps the rest in a `do` (`opExec`,
+  `src/vm/ast.nim`).
+- Infix operators associate **right-to-left**: official example
+  `examples/src/rosetta/Operator precedence.art` shows `3 * 5 + 2` ==
+  `3 * (5 + 2)` == 21, not 17. Parenthesize mixed infix chains.
+- `render` (alias `~`, `src/library/Strings.nim`) **evaluates** the `|...|`
+  interpolation regions as Arturo code and is recursive by default;
+  `render.once` disables recursion. This confirms the "template can execute
+  content" caution.
+- String forms: `"..."` plain, `{...}` multiline/curly, `{:...:}` verbatim,
+  `{/.../}` regex, `---...---` triple-dash multiline. There is **no** special
+  `{::}` literal; `{::}` is just an empty verbatim string
+  (confirmed in `src/vm/parse.nim` and `examples/src/rosetta/Determine if a
+  string is collapsible.art`). No `reader` builtin exists in v0.10.0.
+- `try` returns an `:error` on failure or `null`; `error?` is the type
+  predicate; `err\kind`/`err\msg` hold error details
+  (`src/library/Exceptions.nim`, `Types.nim`).
+- Inline `;` comments after code are valid (used throughout official
+  examples), e.g. `i: 1 ; sum 1..100`.
+- `switch` (alias `?`) is the if/else construct; `if` is single-branch only;
+  multi-branch uses `when`/`case` (`src/library/Core.nim`).
+- Attributes sit on the stack and a keyword can capture/consume an attribute of
+  the same name when it evaluates; it is real but fragile, so prefer explicit
+  attribute syntax (`sort.descending`, `join.with:"`). Consistent with the
+  attribute model in `src/library/*.nim` and `src/vm/ast.nim`.
+- Newlines are insignificant (whitespace-only syntax): multi-line code of any
+  length can be compressed onto one line if spaces stay intact. But a `;`
+  comment discards everything after it on that physical line — so compressed
+  single-line code must have **no** `;` comments, or the rest of the line is
+  silently dropped. Confirmed by official examples and parser behavior.
+
+## 9c. In-a-nutshell vs Python execution verification
+
+Every row in `references/in-a-nutshell-vs-python.md` was verified: the Python
+expressions were **executed** in this sandbox (Python 3.11) and produced the
+recorded outputs; the Arturo side was checked against v0.10.0 source semantics
+and the official in-a-nutshell documented outputs. Spot-checked equivalences
+(all matched): `35/4`↔`35//4`=8, `35//4`↔`35/4`=8.75, `2^5`↔`2**5`=32,
+`1..10` inclusive vs Python `range` exclusive, `select` keeps / `filter` drops,
+`and?`/`or?` short-circuit, string upper/lower/split/join/contains, list
+map/select/filter/unique/slice/repeat, and 0-based backslash indexing.
+
+## 9d. Web/HTTP project-pattern source verification
+
+The real-world web/RSS patterns in `references/web-and-http-patterns.md` were
+checked against v0.10.0 source:
+
+- `request` args are `url` + `data` (`Net.nim`); `serve` handlers return
+  strings and `.port:` is an attribute (`Net.nim`).
+- `write` args are `content` + `file`; `.directory`/`.json`/`.compact`/`.append`
+  are attributes (`Files.nim`).
+- `call` takes `(function, params-block)`; `do` evaluates a block (`Core.nim`).
+- `{/.../}` curly regex ends at the first literal `}` (`parse.nim`). Tested
+  experience: appending flags after the closing `/` (`{/pattern/i}`) is **not
+  reliable** — use inline `(?i)` inside the pattern instead, and keep `}` out
+  of the pattern.
+- `key?` accepts only `:dictionary`/`:object`, not `:store` (`Collections.nim`).
+- No `else` keyword; two-way branch via `(cond)? [a] [b]` (`Core.nim`).
+
+Some items (e.g. `do [fn arg]` vs bare-call misbinding, `++ @[feed]` not
+splicing a dict, mini-HTTPs `request` returning `null`, serve returning a dict
+→ 500) are behavioral and marked "project experience"; re-verify on the target
+build with `info 'name` and a minimal test before relying on them.
+
 ## 10. Helper verification
 
 The following helper paths were exercised:

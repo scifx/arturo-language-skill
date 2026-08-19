@@ -107,7 +107,7 @@ loop.with:'i items 'item [print [i item]]
 
 squares: map 1..5 'x -> x*x
 evens: select 1..10 'x -> even? x
-total: fold 1..5 0 [acc x][acc+x] ; verify exact signature first
+total: fold 1..5 [acc x][acc + x]  ; seed via attribute: fold.seed:0 1..5 [acc x][acc + x]
 ```
 
 Control words include `break`, `continue`, `return`, `while`, `until`, and `loop`. Query signatures because many iterator functions accept an optional params argument represented by `null`, literal, or block.

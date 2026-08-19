@@ -2,6 +2,38 @@
 
 Verified 2026-08-19. Stable release shown by the official site: **0.10.0 “Arizona Bark”**.
 
+## Quick navigation map (find the right place fast)
+
+Use this to jump straight to the source for a given need — no searching.
+
+| What you need | Where to look | Link |
+|---|---|---|
+| Run/local help for any symbol | `info 'x`, `info.get 'x \| get 'example` (local, offline) | see `practical-rules.md` |
+| Download / install Arturo | Official site or Releases | `https://arturo-lang.io/` · `https://github.com/arturo-lang/arturo/releases` |
+| 15-minute language tour | In a nutshell (online) | `https://arturo-lang.io/documentation/in-a-nutshell` |
+| 15-minute tour, Arturo↔Python (local, verified) | `references/in-a-nutshell-vs-python.md` | side-by-side with observed outputs |
+| HTTP / JSON / `serve` / file-state (real project) | `references/web-and-http-patterns.md` | call forms, write/request 2-arg rules, regex `}` gotcha, read-state via JSON |
+| Language design & philosophy | Language reference | `https://arturo-lang.io/documentation/language` |
+| CLI flags & package commands | Command line | `https://arturo-lang.io/documentation/command-line` |
+| Every keyword with examples | Standard library index | `https://arturo-lang.io/documentation/library` |
+| Module page (e.g. Core) | library + lowercased module | `https://arturo-lang.io/documentation/library/core` |
+| 100+ worked examples | Examples browser | `https://arturo-lang.io/documentation/examples` |
+| Rosetta Code idioms (real `.art`) | examples repo, `src/rosetta/` | `https://github.com/arturo-lang/examples/tree/main/src/rosetta` |
+| Language/VM/library source | GitHub repo | `https://github.com/arturo-lang/arturo` |
+| Syntax + full word-list cheat sheet (for AI training) | Dr. Kameleon's gist | `https://gist.github.com/drkameleon/93331d1da47493effaa3b7f7c562ed62` |
+| Online playground (no install) | Playground | `https://arturo-lang.io/playground/` |
+
+The **AI training material gist** (`https://gist.github.com/drkameleon/93331d1da47493effaa3b7f7c562ed62`) is the single best offline summary: it contains the full syntax overview plus a compact word-list reference. Download it once and keep it with the skill for fast lookups.
+
+### Modularity / OOP pages (quick refs)
+
+| Topic | Official page |
+|---|---|
+| `import` (packages, local files, `!`) | `https://arturo-lang.io/documentation/library/core/import` |
+| `module` (create a module) | `https://arturo-lang.io/documentation/library/core/module` |
+| `define` (custom types/classes) | `https://arturo-lang.io/documentation/library/types/define` |
+| Exceptions / `try` / `error?` | `https://arturo-lang.io/documentation/library/exceptions/` |
+
 ## Canonical sites
 
 | Purpose | URL |
@@ -21,6 +53,33 @@ Verified 2026-08-19. Stable release shown by the official site: **0.10.0 “Ariz
 | PowerShell installer | https://get.arturo-lang.io/ps |
 | Nightly Unix installer | https://get.arturo-lang.io/latest |
 | Nightly PowerShell installer | https://get.arturo-lang.io/latest/ps |
+
+## Install the runtime (fastest first)
+
+**Official one-liner (Linux/macOS/FreeBSD/WSL/Git-Bash/MSYS2):**
+
+```bash
+curl -sSL https://get.arturo-lang.io | sh          # latest stable
+curl -sSL https://get.arturo-lang.io/latest | sh   # nightly preview
+```
+
+Verify after installing:
+
+```bash
+arturo --version
+```
+
+Other routes, in order of preference:
+
+1. **Pre-built binaries** — no install needed, just unzip and run. From the official site `https://arturo-lang.io/` (Download) or the GitHub Releases page `https://github.com/arturo-lang/arturo/releases`. Pick by OS + arch (e.g. `arturo-0.10.0-linux-amd64.zip`); nightly binaries live at `https://github.com/arturo-lang/nightly`.
+2. **macOS Homebrew:** `brew install arturo`
+3. **Arch Linux (AUR):** `yay -S arturo` or `paru -S arturo`
+4. **Windows:** `curl -sSL https://get.arturo-lang.io/ps | powershell -c -`, or use the one-liner inside WSL/Git-Bash/MSYS2
+5. **From source (last resort):** clone `https://github.com/arturo-lang/arturo` and run `./build.nims --install` (requires Nim plus GTK/webkit `-dev` libraries for the Full build; use `--mode mini` to avoid the GUI deps). Full instructions: `https://github.com/arturo-lang/arturo/wiki/Building-Arturo`.
+
+> Note: there is no official Debian/Ubuntu `apt install arturo` package. On Debian/Ubuntu prefer the official installer or a pre-built binary. Do not claim `apt install arturo` works on those systems without verifying it in the actual environment.
+
+Arturo's "installation" is effectively just a static binary: download → unzip → place on `$PATH` (e.g. `~/.arturo/bin/arturo` or `/usr/local/bin/arturo`) → run. Set `ARTURO_BIN` if the skill tools cannot auto-detect it from `PATH`.
 
 ## Version-aware paths
 

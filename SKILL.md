@@ -14,6 +14,36 @@ metadata:
 
 Use this skill to produce **version-aware, tested Arturo**, not plausible-looking Rebol/Python.
 
+## Install / get the Arturo runtime (only if it is missing)
+
+Check for a runtime first. If `command -v arturo` finds nothing (or `arturo --version` fails), install the **latest stable** with the official one-liner rather than building from source:
+
+```bash
+command -v arturo && arturo --version   # already installed?
+curl -sSL https://get.arturo-lang.io | sh          # latest stable (Linux/macOS/FreeBSD/WSL/Git-Bash/MSYS2)
+# nightly preview instead:
+curl -sSL https://get.arturo-lang.io/latest | sh
+```
+
+Other official routes (use these when the installer is unavailable):
+
+| System | Command / route |
+|---|---|
+| any | Pre-built binaries: official downloads page `https://arturo-lang.io/` → Download, or GitHub Releases `https://github.com/arturo-lang/arturo/releases` (unzip & run; no install needed) |
+| macOS | `brew install arturo` |
+| Arch Linux | AUR: `yay -S arturo` or `paru -S arturo` |
+| Windows | `curl -sSL https://get.arturo-lang.io/ps | powershell -c -` (or WSL/Git-Bash/MSYS2 one-liner) |
+| from source | only as last resort: clone `arturo-lang/arturo`, run `./build.nims --install` (needs Nim, GTK/webkit libs) — see `references/resources.md` |
+
+Then verify and make the runtime discoverable by the skill tools:
+
+```bash
+arturo --version                 # e.g. 0.10.0
+export ARTURO_BIN=$(command -v arturo)   # optional; bin/ahelp also auto-detects from PATH
+```
+
+**If no runtime can be installed in this environment**, do not guess signatures: use the offline path `./bin/ahelp name` and the reference files, and say so when reporting results. Do not invent a signature you cannot run.
+
 ## Start here: zero/one-step lookup
 
 **If the function name is known, do this first—do not open another reference file:**
@@ -28,7 +58,15 @@ Inside the REPL or an `.art` file:
 ```arturo
 info 'read                 ; formatted signature, attributes, returns
 meta: info.get 'read       ; same metadata as a dictionary
+print meta\example         ; the OFFICIAL runnable example, available locally
 ```
+
+**All of this is local and offline.** Once a runtime is installed, `info`,
+`info.get`, and the `example` field give you the usage, options, return type,
+**and a runnable example for every keyword without any internet access.** This
+is the fastest way to write correct code: query the keyword, read its
+`example`, adapt it. For symbols lists use `symbols | keys | print`. (When no
+runtime exists, `./bin/ahelp -s TERM` still resolves the doc URL offline.)
 
 If Arturo is absent, or one command should provide runtime help plus the official URL:
 
@@ -63,8 +101,16 @@ Copy `config.env.example` to `config.env` for persistent local overrides. Never 
 | Exact API but no runtime | `./bin/ahelp NAME` | none; wrapper reads index |
 | Unknown function name/concept | `./bin/ahelp -s TERM` | none |
 | Syntax/evaluation question | read this file's quick rules, then `references/syntax-cheatsheet.md` only if needed | at most one |
+| Gotchas / idioms / correct usage | `references/practical-rules.md` (string forms, infix right-to-left, `import ...!`, template safety, error handling) | one |
+| 15-minute tour vs Python (learn fast) | `references/in-a-nutshell-vs-python.md` | one |
+| HTTP / JSON / `serve` / file-state (real project) | `references/web-and-http-patterns.md` | one |
 | Python translation | `references/python-to-arturo.md` | one |
 | Version/build discrepancy | `references/verified-tests.md` | one |
+
+**Fast keyword self-education** (mirrors the user's workflow, all verified):
+`symbols | keys | print` lists every defined symbol; `info 'NAME` shows help;
+`info.get 'NAME | get 'example` shows the official runnable example block.
+See `references/practical-rules.md`.
 
 ## Core rules (enough for most tasks)
 
@@ -82,6 +128,7 @@ Copy `config.env.example` to `config.env` for persistent local overrides. Never 
 - Integer operands: `/` gives integer-style division; `//` gives floating division—the spelling differs from Python.
 - A trailing `!` is parser/evaluation sugar used especially in `import "pkg"!`.
 - Full and Mini builds differ. Mini lacks UI, HTTPS, database, package-manager, parser, and arbitrary-precision features listed in official build docs.
+- **The whole language is discoverable locally.** Every keyword lives in the standard library; `symbols | keys | print` lists them all, and `info 'x` / `info.get 'x | get 'example` reveal each one's usage, options, returns, **and a runnable example**. With those three, you can look up and write almost any Arturo program without the internet — so query before you guess.
 - **Never invent a standard-library signature. Query `info` first.**
 
 ## Common symbols: direct official pages
@@ -105,17 +152,28 @@ Base URL: `https://arturo-lang.io/`. Predicate `?` often becomes `-` in a slug, 
 
 ## Required coding workflow
 
-1. Identify target version/build. Default to stable `0.10.0` if unspecified.
-2. Query every unfamiliar API with `info 'name`; if no runtime, use `./bin/ahelp name`.
-3. Write the smallest runnable `.art` program. Prefer explicit iterator parameters before dense pipe/sugar forms.
-4. Run `arturo --no-color file.art` or `arturo --no-color -e 'CODE'` when a runtime exists.
-5. On failure, trust the diagnostic. Check literal vs resolved word, arity/order, block evaluation, attributes, right-to-left grouping, and build variant.
-6. Read at most the one relevant deep reference unless diagnosing version drift:
+1. Ensure a runtime is available: `command -v arturo`. If missing, install it (see **Install / get the Arturo runtime** above); do not build from source unless that fails.
+2. Identify target version/build. Default to stable `0.10.0` if unspecified; confirm with `arturo --version`.
+3. Query every unfamiliar API with `info 'name`; if no runtime, use `./bin/ahelp name`.
+4. Write the smallest runnable `.art` program. Prefer explicit iterator parameters before dense pipe/sugar forms.
+5. Run `arturo --no-color file.art` or `arturo --no-color -e 'CODE'` when a runtime exists.
+6. On failure, trust the diagnostic. Check literal vs resolved word, arity/order, block evaluation, attributes, right-to-left grouping, and build variant.
+7. Read at most the one relevant deep reference unless diagnosing version drift:
    - syntax → `references/syntax-cheatsheet.md`
-   - Python comparison → `references/python-to-arturo.md`
+   - gotchas/idioms → `references/practical-rules.md`
+   - 15-min tour vs Python (learning) → `references/in-a-nutshell-vs-python.md`
+   - HTTP/JSON/serve/web project → `references/web-and-http-patterns.md`
+   - Python translation → `references/python-to-arturo.md`
    - task recipes → `references/recipes.md`
    - links/source/package routes → `references/resources.md`
    - compatibility/evidence → `references/verified-tests.md`
+
+**If no runtime is available**, verify signatures and idioms against the official source instead of guessing: clone the matching tag (`git clone --depth 1 --branch v0.10.0 https://github.com/arturo-lang/arturo`), then check the built-in's `builtin "name"` declaration in `src/library/*.nim` and its official examples in `tests/unittests/*.art`. Example checks that already passed against v0.10.0 source:
+
+- `fold` uses a seed via **attribute**, not a positional arg: `fold.seed:0 1..5 [acc x][acc + x]`.
+- Ternary uses `(cond)? -> a -> b`.
+- In-place arithmetic accepts a literal/path-literal (`'total + n`) because `add` accepts `Literal`/`PathLiteral` as `valueA`.
+- `map 1..5 'x -> 2*x`, `select 1..10 'x -> even? x`, `join.with:","`, `sort.descending xs` match their `builtin` declarations.
 
 ## Minimal reliable template
 

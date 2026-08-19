@@ -43,6 +43,11 @@ print body
 
 Use Full build for HTTPS. Query `request`, `download`, `serve`, sockets functions, and returned types. Never assume Python `requests` semantics.
 
+> For a real HTTP server + JSON + file-state project, see
+> `references/web-and-http-patterns.md` (call via `do [...]`/`call`, `serve`
+> returning strings, `write` two-arg rule, `request` two-arg, curl fallback,
+> `{/.../}` regex `}` gotcha, read-state via JSON not `:store` handles).
+
 ## JSON/structured parsing
 
 Arturo's `parse`/`to` operations are type/format sensitive. Query:
