@@ -9,7 +9,7 @@ Use this to jump straight to the source for a given need — no searching.
 | What you need | Where to look | Link |
 |---|---|---|
 | Run/local help for any symbol | `info 'x`, `info.get 'x \| get 'example` (local, offline) | see `practical-rules.md` |
-| Download / install Arturo | Official site or Releases | `https://arturo-lang.io/` · `https://github.com/arturo-lang/arturo/releases` |
+| Download / install Arturo | **Bundled in this repo: `bin/arturo` (Full, no UI) and `bin/arturo-mini`** — no download needed · official site or Releases as fallback | `https://arturo-lang.io/` · `https://github.com/arturo-lang/arturo/releases` |
 | 15-minute language tour | In a nutshell (online) | `https://arturo-lang.io/documentation/in-a-nutshell` |
 | 15-minute tour, Arturo↔Python (local, verified) | `references/in-a-nutshell-vs-python.md` | side-by-side with observed outputs |
 | HTTP / JSON / `serve` / file-state (real project) | `references/web-and-http-patterns.md` | call forms, write/request 2-arg rules, regex `}` gotcha, read-state via JSON |
@@ -55,6 +55,22 @@ The **AI training material gist** (`https://gist.github.com/drkameleon/93331d1da
 | Nightly PowerShell installer | https://get.arturo-lang.io/latest/ps |
 
 ## Install the runtime (fastest first)
+
+**0. Preferred — bundled in this repo (no download):**
+
+```bash
+./bin/arturo --version                 # Full build (big ints, HTTPS, SQLite, regex, parsers, crypto)
+./bin/arturo-mini --version            # Mini build (zero extra deps)
+export ARTURO_BIN="$PWD/bin/arturo"    # optional; ahelp auto-detects from PATH too
+install -m755 bin/arturo ~/.arturo/bin/arturo   # optional: put it on $PATH
+```
+
+Both binaries are built from `scifx/Arturo-Future` (0.10.1-dev+43, commit
+`933420d`, 2026-08-19) and run on glibc ≥ 2.36 (Debian 12+, Ubuntu 22.04+).
+SHA-256s and the full dependency spec (system libs, per-distro packages,
+rebuild instructions) are in `references/runtime-dependencies.md`. In
+sandboxes where `raw.githubusercontent.com` is blocked this is the only route
+that works out of the box.
 
 **Official one-liner (Linux/macOS/FreeBSD/WSL/Git-Bash/MSYS2):**
 
@@ -105,6 +121,7 @@ The current source tree also has Events, Streams, and Tasks modules; these may a
 
 | Resource | URL | Verified shallow-clone commit |
 |---|---|---|
+| **Bundled prebuilt binaries (preferred runtime)** | this repo: `bin/arturo`, `bin/arturo-mini` | built from `scifx/Arturo-Future` @ `933420d` |
 | Language/VM/library/tests | https://github.com/arturo-lang/arturo | `f956424df49b3526044d54d57fa54c94a0cf74aa` |
 | Official website/docs generator | https://github.com/arturo-lang/website | `e60be9a6f4775de79f5f60a3de75fc6c87e8f61b` |
 | Official examples corpus | https://github.com/arturo-lang/examples | `60e7b92242e39fccdb764c505bb289e3a1e3d391` |
@@ -166,5 +183,7 @@ Registry endpoints used by the packager include `https://pkgr.art/list.art`, `ht
 
 Use links from the home page, not relative links copied from a nested docs page. Stable Linux amd64 checksums tested here:
 
+- **Bundled `bin/arturo` (Full, no UI, 0.10.1-dev+43): SHA-256 `b7597e9d5ea3d0c0229e37c936518b12c0d69cb9ffe514fad63a9e08f2b0a38d`** — dependency spec in `runtime-dependencies.md`.
+- **Bundled `bin/arturo-mini` (Mini, 0.10.1-dev+43): SHA-256 `78fbbf467528a8b7e2cc83d5015f5d75c3c6165f7f188ef543b7bcae848705ad`** — zero extra deps.
 - Full ZIP: `https://arturo-lang.io/files/arturo-0.10.0-linux-amd64.zip` — SHA-256 `764e484bf226ed14494b0e87601af4cd399da778d31ea059150bb07a621bb35d`
 - Mini ZIP: `https://arturo-lang.io/files/arturo-0.10.0-linux-amd64-mini.zip` — SHA-256 `2ff02a02ec4b26916b2a45c585e1bfbcfe14bb5e29e1ea317ccf7ca3ae539077`

@@ -1,12 +1,12 @@
 # Verification, compatibility, and known limitations
 
-Verification date: **2026-08-19**. Test platform: Linux amd64 sandbox. Stable version under test: **Arturo 0.10.0 “Arizona Bark”**. This document distinguishes facts directly executed in the sandbox from documentation/link checks and areas that were not exercised. It is deliberately explicit so an agent does not convert a small smoke test into a claim that every library feature was tested.
+Verification date: **2026-08-19**. Test platform: Linux amd64 sandbox. Primary runtime under test: **the bundled `bin/arturo` / `bin/arturo-mini` (0.10.1-dev+43, built from `scifx/Arturo-Future`)**; the official stable release **Arturo 0.10.0 “Arizona Bark”** is retained as a documentation/link baseline. This document distinguishes facts directly executed in the sandbox from documentation/link checks and areas that were not exercised. It is deliberately explicit so an agent does not convert a small smoke test into a claim that every library feature was tested.
 
 ## 1. Evidence levels
 
 Use these labels when interpreting this skill:
 
-- **Runtime-verified**: executed against the official Linux amd64 Mini 0.10.0 binary in this workspace.
+- **Runtime-verified**: executed against the bundled `bin/arturo` / `bin/arturo-mini` binaries in this workspace (earlier 0.10.0 Mini-verification notes are kept as historical baseline).
 - **Link-verified**: fetched over HTTPS and returned the recorded HTTP status on the verification date.
 - **Source-verified**: checked against shallow clones of official repositories at the commits listed in `resources.md`.
 - **Documentation-derived**: stated by official documentation but not necessarily executable in Mini.
@@ -37,6 +37,36 @@ Its SHA-256 matched:
 The Mini executable launched and reported:
 
 `arturo 0.10.0 Arizona Bark (amd64/linux)`
+
+## 2b. Bundled binary verification (preferred runtime source)
+
+**This repo now ships the runtime** — `bin/arturo` (Full, no UI) and
+`bin/arturo-mini` (Mini), both built 2026-08-19 from `scifx/Arturo-Future`
+(commit `933420d`, version `0.10.1-dev+43`) with Nim 2.2.6 + GCC 12.2 on
+Debian 12 (`--release`, LTO, strip, mimalloc):
+
+- `bin/arturo`: SHA-256 `b7597e9d5ea3d0c0229e37c936518b12c0d69cb9ffe514fad63a9e08f2b0a38d`, 6,519,792 bytes — Full build minus the UI stack (no WEBVIEW/DIALOGS/CLIPBOARD; GMP/ssl/SQLITE/PARSERS/DOCGEN kept)
+- `bin/arturo-mini`: SHA-256 `78fbbf467528a8b7e2cc83d5015f5d75c3c6165f7f188ef543b7bcae848705ad`, 5,200,088 bytes — Mini build, zero extra shared-lib deps
+
+Run attempt in this sandbox (Debian 12 bookworm, glibc 2.36, GCC 12):
+
+```
+$ ./bin/arturo --version
+arturo 0.10.1-dev+43 (amd64/linux)
+```
+
+`ldd bin/arturo` / `ldd bin/arturo-mini`: **no `not found` entries**. The
+Full build's runtime deps (`libgmp.so.10`, `libmpfr.so.6`, `libssl.so.3`,
+`libcrypto.so.3`, dlopen `libsqlite3.so.0`) are all standard on Debian 12+.
+Runtime-verified features of the Full build: big integers (`2^300`), MPFR
+floats (`sqrt 2.0`), SQLite (create/insert/select), **HTTPS** (`request` →
+status 200), PCRE regex, crypto hashes. Full matrix and rebuild notes:
+`references/runtime-dependencies.md`.
+
+Historical note: the earlier `scifx/arturo-bin` upload (Full build, SHA-256
+`73bda271...`, commit `cc0849a`) required glibc ≥ 2.38 + the webkit/GTK stack
+and could not launch on Debian 12 (exit 127). It is superseded by the bundled
+binaries above.
 
 ## 3. CLI compatibility matrix
 
@@ -258,7 +288,13 @@ python3 scripts/arturo_help.py '++'
 python3 scripts/arturo_help.py map --info --runtime /path/to/arturo
 ```
 
-The shell helper requires POSIX `sh` and `awk`, auto-detects `arturo`, accepts `ARTURO_BIN`, and does not require Python. The Python helper uses `python3` through its environment shebang and accepts an explicit runtime path. Neither helper downloads or executes remote documentation. A native PowerShell counterpart exists at `bin/ahelp.ps1`; it was source-reviewed but not executed in this Linux sandbox because `pwsh` was unavailable.
+`scripts/get-arturo.sh` was exercised: with the bundled binaries present it
+uses `bin/arturo` with **no download** (installs to `~/.arturo/bin/arturo`,
+dependency report shows no missing libs on Debian 12); `--check-only` works
+on both bundled binaries. `bin/ahelp` auto-detects the bundled `bin/arturo`
+and returns real runtime `info` output.
+
+The shell helper requires POSIX `sh` and `awk`, auto-detects the bundled `bin/arturo` (falling back to `$ARTURO_BIN`/PATH), skips the runtime in `-s` search mode, and does not require Python. The Python helper uses `python3` through its environment shebang, auto-detects the bundled `bin/arturo`, and accepts an explicit `--runtime` path. Neither helper downloads or executes remote documentation. A native PowerShell counterpart exists at `bin/ahelp.ps1` (same bundled-binary default and `-Search` behavior); it was source-reviewed but not executed in this Linux sandbox because `pwsh` was unavailable.
 
 The MCP server was smoke-tested with newline-delimited JSON-RPC requests for `initialize`, `tools/list`, and `tools/call`. It is optional. MCP client configuration varies; clients normally require absolute paths. The MCP server's index tools work without Arturo, while runtime `arturo_info` degrades to index-only output if `ARTURO_BIN` cannot be found.
 
@@ -269,7 +305,7 @@ The MCP server was smoke-tested with newline-delimited JSON-RPC requests for `in
 - Runtime help is authoritative for the installed build, but project-local definitions can shadow symbols. Test in a clean process when diagnosing built-ins.
 - The shell CSV reader relies on the current index schema and on the relevant fields not containing commas. It is intentionally simple and fast.
 - Windows without WSL/Git Bash may not run `bin/ahelp`; use `python3`/`py -3 scripts/arturo_help.py` or MCP.
-- Full could not be launched in this sandbox, so Full-only runtime claims remain documentation-derived.
+- The old scifx/arturo-bin Full upload could not launch in this Debian 12 sandbox (needed glibc ≥ 2.38 + webkit/GTK; see §2b historical note). The bundled `bin/arturo` (no-UI Full) and `bin/arturo-mini` both **run and are runtime-verified** on Debian 12, including HTTPS/SQLite/big-int for the Full build.
 - Network, databases, sockets, UI, packaging, bundling, bytecode compilation, and cross-platform behavior were not comprehensively exercised.
 - Examples and Rosetta Code are secondary sources for idioms. They can target older language versions.
 - Generated documentation describes intended signatures but cannot guarantee environmental resources such as TLS libraries, GUI libraries, database drivers, file permissions, or open network ports.

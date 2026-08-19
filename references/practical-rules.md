@@ -1,18 +1,19 @@
 # Arturo practical rules, idioms & gotchas (source-verified)
 
-Distilled from hands-on experience and verified against the official Arturo
-v0.10.0 source (`src/library/*.nim`, `src/vm/parse.nim`, `src/vm/ast.nim`) and
-the official examples corpus. Each rule is labelled **verified** (confirmed
-against source/examples) or **corrected** (the naive form is wrong; here is the
-right form). When in doubt, always confirm with `info 'name` / `./bin/ahelp`.
+Distilled from hands-on experience and verified against the bundled runtime
+(`scifx/Arturo-Future` 0.10.1-dev+43 source: `src/library/*.nim`,
+`src/vm/parse.nim`, `src/vm/ast.nim`) and the official examples corpus. Each
+rule is labelled **verified** (confirmed against source/examples) or
+**corrected** (the naive form is wrong; here is the right form). When in
+doubt, always confirm with `info 'name` / `./bin/ahelp`.
 
 ## Fast self-education on any keyword
 
 ```bash
-arturo -e "symbols | keys | print"      # every defined symbol, as a list/block
-arturo --no-color -e "info 'print"      # help: usage, options, returns (like --help)
-arturo --no-color -e "info.get 'print"  # deeper info as a dictionary object
-arturo --no-color -e "info.get 'print | get 'example"  # the official runnable example block
+./bin/arturo -e "symbols | keys | print"      # every defined symbol, as a list/block
+./bin/arturo --no-color -e "info 'print"      # help: usage, options, returns (like --help)
+./bin/arturo --no-color -e "info.get 'print"  # deeper info as a dictionary object
+./bin/arturo --no-color -e "info.get 'print | get 'example"  # the official runnable example block
 ```
 
 **Verified.** `symbols` returns a `:dictionary` of the current symbols;
@@ -23,15 +24,29 @@ the official example(s) — extremely useful for writing correct code locally.
 
 ## Installation
 
+**Preferred: use the binary bundled in this repo — no download needed.**
+
+```bash
+./bin/arturo --version                 # Full build (big ints, HTTPS, SQLite, regex, parsers, crypto)
+./bin/arturo-mini --version            # Mini build (zero extra deps)
+export ARTURO_BIN="$PWD/bin/arturo"
+```
+
+**Verified.** The bundled binaries (0.10.1-dev+43, built from
+`scifx/Arturo-Future`) run on glibc ≥ 2.36 — verified in this sandbox (Debian
+12): version, big-int arithmetic, floats, SQLite, HTTPS (`request` → 200),
+regex, crypto all exercised. Fallback official installer:
+
 ```bash
 curl -sSL https://get.arturo-lang.io | sh      # latest stable
 curl -sSL https://get.arturo-lang.io/latest | sh  # nightly preview
 ```
 
-**Verified.** Pre-built binaries are also downloadable from the site/Releases
-(no install needed, just unzip and run). macOS: `brew install arturo`; Arch
-(AUR): `yay -S arturo`. There is **no** official Debian/Ubuntu `apt install
-arturo`.
+Pre-built binaries are also downloadable from the site/Releases (no install
+needed, just unzip and run). macOS: `brew install arturo`; Arch (AUR):
+`yay -S arturo`. There is **no** official Debian/Ubuntu `apt install arturo`.
+Dependency requirements of the bundled binaries (system libgmp/libmpfr/libssl
+for the Full build, none for Mini) are in `references/runtime-dependencies.md`.
 
 ## Language model (right-to-left, arity-driven)
 
@@ -197,9 +212,9 @@ programs (914 `.art` files across the repo). Search by keyword to see how a
 symbol is actually used, but treat Rosetta Code as idiom reference — the
 authoritative signatures still come from `info 'name`.
 
-## What is NOT in v0.10.0
+## What is NOT in the runtime
 
-- **Corrected (typo).** There is no `reader` builtin in v0.10.0 — "reader" is a
+- **Corrected (typo).** There is no `reader` builtin — "reader" is a
   misspelling of **`render`**, which is the one that can evaluate interpolated
   `|...|` content (see the template-safety section above). Do not look for a
   `reader` keyword; the risk lives in `render`/`~"..."`.

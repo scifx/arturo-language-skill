@@ -1,15 +1,17 @@
 # Arturo Language AI Skill
 
-Agent Skills-compatible Arturo 0.10.0 skill with runtime-first help, an offline 521-entry library index, Python comparison, tested recipes, link/version evidence, and optional MCP tools.
+Agent Skills-compatible Arturo skill with **a bundled prebuilt runtime**, runtime-first help, an offline 521-entry library index, Python comparison, tested recipes, link/version evidence, and optional MCP tools.
 
 ## Fastest use
 
-First make sure an Arturo runtime exists (otherwise the skill falls back to its offline index):
+**The runtime ships in this repo** (`bin/arturo` Full build with big ints/HTTPS/SQLite/regex/parsers/crypto, `bin/arturo-mini` zero-dep Mini build) — no download needed:
 
 ```bash
-command -v arturo && arturo --version        # already installed?
-curl -sSL https://get.arturo-lang.io | sh    # official installer, if not
+./bin/arturo --version                 # arturo 0.10.1-dev+43 (amd64/linux)
+export ARTURO_BIN="$PWD/bin/arturo"    # point the skill helpers at it (ahelp auto-detects too)
 ```
+
+Both binaries are built from `scifx/Arturo-Future` (0.10.1-dev+43) and run on glibc ≥ 2.36 (Debian 12+, Ubuntu 22.04+); the Full build uses the standard system libs `libgmp.so.10` / `libmpfr.so.6` / `libssl.so.3` / `libcrypto.so.3` (+ dlopen `libsqlite3.so.0`). If those are ever missing, `scripts/get-arturo.sh --check-only bin/arturo` prints install hints; the full dependency spec is in `references/runtime-dependencies.md`.
 
 Then use Arturo's built-in help or the wrapper:
 
