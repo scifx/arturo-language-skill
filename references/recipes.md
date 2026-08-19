@@ -73,6 +73,40 @@ silently returns the input string unchanged. Use `read.json` for JSON text.
 Query `info 'parse`, `info 'read`, `info 'write`, `info 'to` on your target
 build before relying on attribute names.
 
+## Default / optional parameters (attribute stack + `default` helper)
+
+Arturo has no `def f(x=1, y=2)`; the idiomatic equivalent combines attributes
+with `coalesce` (`??`). This helper (from issue #2136, author-approved) makes
+it look like Nim's `default`:
+
+```arturo
+default: function.inline [name value][
+    let name ((attr name) ?? value)
+]
+
+; optional: alias.infix ":" 'default!  → enables 'x: value sugar
+
+fetch: $[placeholder][
+    default 'url  "https://example.com"
+    default 'timeout 30
+    print ["fetching" url "timeout" timeout]
+]
+
+fetch null                       ; defaults: https://example.com 30
+fetch .url: "https://a.io" null  ; override one: https://a.io 30
+```
+
+Rules that make it work:
+
+- The function **must have a parameter** (the `placeholder`) or attributes are
+  never captured — callers pass `null` for it.
+- The helper must be `function.inline` so its `let` binds in the caller's
+  scope.
+- `attr 'x` pops the attribute (`null` if absent); `attr? 'x` only checks;
+  `attrs` returns a copy and clears. Don't mix `attr` and `attrs` in one
+  function.
+- Never name a parameter `null` (shadows the built-in constant).
+
 ## Main-guard / running as a script
 
 ```arturo

@@ -126,3 +126,53 @@ print encode "arturo"        ; base64
 - 可独立运行: `utils.art`、`convert_utils.art`、`lib/sortutils.art`、`schema.art`、`fnschema.art`、`prompt.art`、`aiutils.art`、`complete.art` ✅
 - 实测通过的项目模式: `define`/`method`/`this` OOP 与 `write.json \obj null` 序列化、`read.toml` 配置、`request.get url #[] | get 'body` 与 `request.post .headers: h .json url data`(本地 HTTP 服务器验证)、`ensure.that:`、`key?`、`loop dict [k v]`、`execute.code`、动态工具加载。
 - 注意: 项目 `shell.art` 引用的 `symbols\hints`/`symbols\hits` 在本 build 的 `symbols` 字典中**不存在**(Index Error)——该项目面向的运行时更新;本 skill 无需适配,但已确认不是 skill 文档问题。
+
+---
+
+# 第三轮:提炼官方 issue #2136 — 属性栈机制与默认参数 (2026-08-19)
+
+对照来源: `arturo-lang/arturo` issue #2136 "[Core\function] Defining default parameters"
+(作者 RickBarretto + 语言作者 drkameleon + **本用户 scifx 亲自提交的 `default` 函数实现**)。
+所有规则在捆绑运行时 0.10.1-dev+43 上实测通过;冒烟测试双 build 依旧 PASS。
+
+## 提炼的核心知识 (已写入 skill)
+
+### 1. 属性是"栈",不是函数参数 (drkameleon 原话: "think more CSS than Rebol refinements")
+
+- `.words` 这类属性不是可选的函数参数,而是"把键值对 push 到属性栈"的命令。
+- 它可以出现在语句**任意位置**(甚至语句最前面),直到某个能消费它的函数把它弹出。
+- 实测: `.by: "l"` 放最前 → 第一个 `split "Hello world"` 按 l 分割,第二个 `split` 就没有属性了(逐字符)。
+- 三个反射函数: `attr 'x`(取出并**弹出**,无则 null)、`attr? 'x`(**只检查**不弹出)、`attrs`(副本+**清空**)。
+- **坑**: 同一函数里不要混用 `attr` 和 `attrs`(都清空字典);官方文档 `attr` 示例有误(`multiply.with: 6 5` 实为 30 不是 60)。
+
+### 2. 函数必须有 ≥1 个参数才能看到属性 (placeholder 机制)
+
+- 属性在**最后一个函数参数之前**被捕获;零参函数 `$[]` 永远收不到属性。
+- 实测: `f0: $[][print attr 'online]` + `f0.online` → null;`f1: $[x][...]` + `f1.online 10` → true。
+- 这是 AST 构造的硬性限制(作者原话 "it *has to* have an argument"),不是 bug。
+- 标准解法: 占位参数 `placeholder`,调用方传 `null`。
+
+### 3. 用户的 `default` 函数 (issue 作者确认 "quite accurate and it would work")
+
+```arturo
+default: function.inline [name value][
+    let name ((attr name) ?? value)
+]
+alias.infix ":" 'default!
+```
+
+- 右到左读: `attr name` 弹出属性 → `?? value` 取默认 → `let name` 绑定。
+- `.inline` 是关键: 普通函数的作用域隔离会让 `let` 困在 helper 内部,`.inline` 消除作用域,绑定才能落到调用方。
+- `alias.infix ":"` 提供 `'y: "value1"` 糖(可选)。
+- 坑: 参数名不要用 `null`(遮蔽内建常量);`if?` 已废弃(0.10.1-dev+43 不存在,实测 Name Error)。
+
+## 文档变更
+
+| 文件 | 变更 |
+|---|---|
+| `references/practical-rules.md` | 原 "Attribute-based default parameters" 一节重写为两大节: **Attributes are a stack, not function parameters** + **Default parameters: the `default` helper (issue #2136, author-approved)**,含三函数区别、placeholder 必要性、完整实现与坑 |
+| `SKILL.md` | 核心规则补属性栈与 `default` helper 要点;思维模式转换新增第 7 条"Attributes are a stack, not kwargs";查找决策表新增默认参数行 |
+| `references/recipes.md` | 新增 "Default / optional parameters" recipe(fetch 示例 + 四条规则) |
+| `VERIFICATION.md` | 本轮记录 |
+
+所有文档中的新示例(`fetch null`/`fetch .url:... null`、属性栈 `.by:`、placeholder 对照)均已实测输出正确。

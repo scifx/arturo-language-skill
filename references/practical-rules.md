@@ -313,28 +313,108 @@ If you only need an alias *inside one expression*, just re-assign the value:
 `bar: foo` then call `bar` (functions are values). But for long-lived
 renames across the file, the one-line wrapper above is the safe form.
 
-## Attribute-based default parameters (project idiom, verified)
+## Attributes are a stack, not function parameters (the real model)
 
-agent-shell.art's `lib/py.art` defines a clever default-argument idiom:
-attributes are optional named parameters; `attr` reads them off the stack;
-`??` provides the fallback; `.inline` makes the `let` visible in the caller:
+**Verified against the language author's explanation (issue #2136).** The
+single most misunderstood feature. Attributes (`sort.descending xs`,
+`join.with:"," xs`) look like optional function arguments, but they are NOT.
+An attribute is just a **"push this key/value pair onto the attribute stack"
+command**. It can appear *anywhere*, even at the start of a statement, and it
+sits there until some function consumes it:
+
+```arturo
+.by: "l"                      ; push an attribute — nothing consumes it yet
+print "This an example"       ; print ignores it
+print split "Hello world"     ; split CONSUMES .by: → ["He" "" "o wor" "d"]
+print split "Hello world"     ; attribute already popped → default split by char
+```
+
+Think CSS, not Python kwargs: attributes float in the current evaluation
+context until a function that recognizes them pops them. This also means
+**attribute order does not matter** and attributes can be spread across
+statements — flexible, but easy to leak into a call you did not intend.
+
+### The three reflection functions
+
+- `attr 'name` — **pops** the named attribute and returns it; `null` if absent.
+- `attr? 'name` — **only checks** presence; does NOT pop.
+- `attrs` — returns a **copy** of the whole attribute dictionary **and clears
+  it**.
+
+**Do not mix `attr`/`attrs` in the same function** — both clear the
+dictionary, so the second call finds nothing. Pick one.
+
+### Rule: a function must have ≥ 1 parameter to see attributes
+
+**Verified on the bundled runtime.** Attributes are captured *right before the
+last function parameter*. A zero-argument function (`$[]`) never sees them —
+calls like `foo.online` leave the attribute unconsumed and `attr 'online`
+returns `null`:
+
+```arturo
+f0: $[][ print attr 'online ]   ; f0.online → null  (attribute NOT captured)
+f1: $[x][ print attr 'online ]  ; f1.online 10 → true (captured)
+```
+
+This is an AST-construction constraint (the author: "it *has to* have an
+argument"), not a bug. The standard workaround is a **placeholder parameter**
+named `null` or `placeholder` that callers fill with `null`:
+
+```arturo
+models: $[placeholder][ ... ]   ; callers write: models.online null
+```
+
+## Default parameters: the `default` helper (issue #2136, author-approved)
+
+There is no optional-parameter syntax in Arturo; the official recommendation
+is attributes + `coalesce` (`??`). This helper — contributed by the
+agent-shell.art author in issue #2136 and confirmed by the language author
+("quite accurate and it would work") — packages that pattern into a reusable,
+Nim-`default`-style form:
 
 ```arturo
 default: function.inline [name value][
     let name ((attr name) ?? value)
 ]
+alias.infix ":" 'default!       ; optional: enables 'x: value form
 
-py: $[pycode][
-    default 'pypy false        ; if caller passed .pypy: true, use it
-    default 'file null         ; else the default
-    ; ...
+foo: $[placeholder][
+    default 'x "value0"         ; x = .x: attr if passed, else "value0"
+    'y: "value1"                ; same via the infix alias
+    print [x y]
 ]
-py .pypy: true "print(1)"      ; call with attribute = optional named arg
+
+foo null                        ; → value0 value1   (placeholders = null)
+foo .x: "a" .y: "b" null        ; → a b
 ```
 
-Read it right-to-left: `(attr name) ?? value` = "the `.name:` attribute if it
-was passed, otherwise `value`". This is the idiomatic Arturo way to emulate
-keyword/default arguments — no `def f(x=1, y=2)` equivalent exists.
+How it works, reading right-to-left:
+
+1. `attr name` — pop the `.name:` attribute off the stack (`null` if absent).
+2. `?? value` — `coalesce`: pick the default when the attribute was `null`.
+3. `let name (...)` — bind the result to the caller's variable. This is why
+   the helper must be `function.inline`: a normal function would keep the
+   binding in its own scope and the caller would never see `x`.
+4. `alias.infix ":" 'default!` — lets you write `'y: "value1"` sugar, but only
+   if you want it; plain `default 'y "value1"` is fine.
+
+Pitfalls:
+
+- **The function still needs its placeholder parameter** (see the rule
+  above) — the attributes are captured only because `foo` has ≥1 param.
+  Callers pass `null` for it.
+- **Never name a parameter `null`** — it shadows the built-in `null` constant
+  and causes hidden bugs. Use `placeholder` or similar (the author's own
+  advice).
+- `if?` is **deprecated/removed** — it does not exist on 0.10.1-dev+43. Use
+  `if` / `case` / `when`. (It appeared in older attribute examples.)
+- The official `attr` documentation example is wrong
+  (`print multiply.with: 6 5` outputs 30, not 60 as documented); trust the
+  runtime, not that page.
+
+This is the idiomatic way to emulate Python's `def f(x=1, y=2)` — there is no
+`def f(x=1, y=2)` equivalent in the language itself. agent-shell.art's
+`lib/py.art` uses exactly this helper for its `.pypy:`/`.file:` flags.
 
 ## The `standalone?` main-guard idiom (project pattern)
 

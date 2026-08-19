@@ -125,6 +125,7 @@ Copy `config.env.example` to `config.env` for persistent local overrides. `bin/a
 | Runtime binary / dependencies / distro compatibility | `bin/arturo` (bundled) + `references/runtime-dependencies.md` | none |
 | 15-minute tour vs Python (learn fast) | `references/in-a-nutshell-vs-python.md` | one |
 | Mind-shift from a traditional language (scope, by-ref, `new`, `++`, JSON, diagnostics) | the **思维模式转换** section above + `references/practical-rules.md` | at most two |
+| Default/optional parameters, the attribute stack, `attr`/`attr?`/`attrs` | `references/practical-rules.md` → **Attributes are a stack** + **Default parameters** | one |
 | HTTP / JSON / `serve` / file-state (real project) | `references/web-and-http-patterns.md` | one |
 | Python translation | `references/python-to-arturo.md` | one |
 | Version/build discrepancy | `references/verified-tests.md` | one |
@@ -162,6 +163,12 @@ mental shifts. Full runtime-verified details live in
    `to :type [...]!`, `this\field`, magic methods (`string:`, `add:`, ...).
    JSON/TOML are first-class data: `read.json s|file`, `write.json v null`,
    `read.toml f`.
+7. **Attributes are a stack, not kwargs.** `.words` in `split.words x` is not
+   an argument — it is a value pushed onto a stack that the function pops.
+   They can sit anywhere (even before unrelated code) until consumed. That is
+   also why **functions need ≥1 parameter to read attributes**, and why
+   "default parameters" are built as `(attr 'x) ?? fallback` (see the
+   `default` helper in Core rules / practical-rules.md).
 
 ## Core rules (enough for most tasks)
 
@@ -178,7 +185,8 @@ mental shifts. Full runtime-verified details live in
 - Index/member access uses backslash and is zero-based: `xs\0`, `user\name`, `xs\[i]`.
 - Functions: `square: function [x :integer][x*x]`; call with `square 4`. `$` aliases `function`: `square: $[x][x*x]`.
 - OOP-lite custom types: `define :person [init: method [n][this\n: n] string: method [][~"I am |this\n|"]]`, construct with `to :person ["Ada"]!`, access `this\field`. Magic methods (`string:`, `add:`, `inc:`, ...) overload stdlib behavior.
-- Attributes/options: `sort.descending xs`, `join.with:"," xs`, `request.get url #[]`, `write.json v null`. Attributes double as optional named params: `attr 'name` reads `.name:` off the stack, `?? default` fills the fallback.
+- Attributes/options: `sort.descending xs`, `join.with:"," xs`, `request.get url #[]`, `write.json v null`. **Attributes are a stack, not function params** — they float until a function pops them (`.by: "l"` before a `split` works). To read them in your own function: `attr 'name` pops, `attr? 'name` checks, `attrs` copies+clears; the function **must have ≥1 parameter** (use a `placeholder` that callers fill with `null`).
+- **Default/optional parameters** (no Python-style defaults exist): attributes + `??` fallback via the `default` helper — `default: function.inline [name value][let name ((attr name) ?? value)]`, then `default 'x "fallback"` inside the function; callers pass `.x: "a"` or omit it. Full rules in `references/practical-rules.md`.
 - In-place forms receive a literal/path literal: `append 'xs item`, `'xs ++ item`, `inc 'i`, `sort 'a`.
 - **Values are passed by reference**: `b: a` aliases `a` — use `new a` for an independent copy before mutating.
 - **Blocks have no scope** (variables leak out); iterators restore injected vars; functions isolate; `.inline` makes a function scope-less (`function.inline [..][..]`).
