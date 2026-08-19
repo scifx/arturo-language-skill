@@ -1,0 +1,192 @@
+; ============================================================================
+; verify-rules.art — 验证本 skill 提炼的全部核心规则 (runtime-verified)
+;
+; 运行: ./bin/arturo --no-color tests/verify-rules.art
+; 预期: 末尾输出 "ALL RULES PASSED (N/N)"
+;
+; 每条规则都来自本 skill 的 SKILL.md / references/practical-rules.md,
+; 并在捆绑运行时 0.10.1-dev+43 上实测。此文件是可复现的"规则测试套件"。
+; ============================================================================
+
+passed: 0
+total: 0
+; 注意: 用 $[...].inline (属性在参数块后) — function.inline 在顶层调用时
+; 函数体不会执行 (本 build 实测的坑, 见 practical-rules.md)
+check: $[label :string cond :logical].inline [
+    'total: total + 1
+    (cond)? [
+        'passed: passed + 1
+        print ["PASS" label]
+    ] [
+        print ["FAIL" label]
+    ]
+]
+
+; ---------------------------------------------------------------------------
+; 1. 指针模型: 'a = 指针, var 解引用读, let 解引用写
+; ---------------------------------------------------------------------------
+a: 42
+p: 'a
+check "type 'a = :literal" (type p) = :literal
+check "var 'a 解引用读 = 42" (var p) = 42
+let 'a 99
+check "let 'a 99 解引用写" a = 99
+inc 'a
+check "inc 'a 通过指针自增" a = 100
+
+; 就地修改
+xs: [3 1 2]
+sort 'xs
+check "sort 'xs 就地排序" xs = [1 2 3]
+'xs ++ 9
+check "'xs ++ 9 通过指针追加" xs = [1 2 3 9]
+
+; 函数通过 :literal 参数改外部变量
+incN: function [s :literal][ let s (var s) + 1 ]
+n: 10
+incN 'n
+check "函数以指针参数修改外部 n" n = 11
+
+; ---------------------------------------------------------------------------
+; 2. 值按引用传递, new 复制
+; ---------------------------------------------------------------------------
+b1: [1 2 3]
+b2: b1
+'b2 ++ 9
+check "b: a 是别名 (b 改则 a 改)" b1 = [1 2 3 9]
+c1: [1 2 3]
+c2: new c1
+'c2 ++ 9
+check "new 复制 (c2 改不影响 c1)" c1 = [1 2 3]
+
+; ---------------------------------------------------------------------------
+; 3. 右到左求值, 无优先级
+; ---------------------------------------------------------------------------
+check "2 * 3 + 4 = 14 (右到左)" (2 * 3 + 4) = 14
+check "2 * (3 + 4) = 14 等价" (2 * (3 + 4)) = 14
+check "(2 * 3) + 4 = 10 加括号" ((2 * 3) + 4) = 10
+
+; ---------------------------------------------------------------------------
+; 4. 作用域: 块无作用域, 函数隔离, .inline 消除
+; ---------------------------------------------------------------------------
+do [ leakedVar: 42 ]
+check "块内变量泄漏到块外" leakedVar = 42
+helper: function [n][
+    localOnly: n * 2
+    return localOnly
+]
+helper 5
+check "函数内变量不可见 (defined? 为 false)" not? defined? 'localOnly
+inlineHelper: $[n].inline [ inlineLeak: n ]
+inlineHelper 7
+check ".inline 函数变量泄漏到调用方" inlineLeak = 7
+
+; 迭代器注入变量循环后恢复
+loopVar: 3
+loop.with:'i ["x" "y"] 'loopVar [ ]
+check "迭代器恢复外层绑定" loopVar = 3
+; (i 已消失 — 用 defined? 验证)
+check "迭代器注入变量循环后不可见" not? defined? 'i
+
+; ---------------------------------------------------------------------------
+; 5. ++ 是 append, 只能拼字符串
+; ---------------------------------------------------------------------------
+check "字符串 ++ 字符串 = 拼接" ("a" ++ "b") = "ab"
+check "混合拼接先转字符串" ((to :string 0) ++ "a") = "0a"
+; ⚠ 不要测 "a" ++ 0 的 type —— 本 build 会挂起 (见 practical-rules.md)
+
+; ---------------------------------------------------------------------------
+; 6. JSON/TOML 一等公民
+; ---------------------------------------------------------------------------
+j: read.json "{\"a\": 1, \"b\": \"hi\"}"
+check "read.json 解析字符串" j\a = 1
+check "read.json 解析字符串 (b)" j\b = "hi"
+s: write.json #[a: 1] null
+check "write.json v null 返回 JSON 字符串" contains? s "a"
+parseTest: parse.json "{\"a\": 1}"
+check "parse.json 是静默空操作 (返回原字符串)" (type parseTest) = :string
+
+; ---------------------------------------------------------------------------
+; 7. 属性栈: attr 弹出, attr? 检查, attrs 副本+清空
+; ---------------------------------------------------------------------------
+attrFn: $[x][
+    hasOnline?: attr? 'online
+    val: attr 'online
+    return #[has: hasOnline? val: val]
+]
+r: attrFn.online 10
+check "attr? 检查属性存在" r\has
+check "attr 取出属性值" r\val = true
+
+; 函数必须有 >=1 参数才能看到属性
+zeroArg: $[][ attr 'online ]
+check "零参函数看不到属性 (null)" null? zeroArg.online
+oneArg: $[x][ attr 'online ]
+check "有参函数能看到属性" oneArg.online 1
+
+; ---------------------------------------------------------------------------
+; 8. default 默认参数 helper (issue #2136)
+; ---------------------------------------------------------------------------
+default: function.inline [name value][
+    let name ((attr name) ?? value)
+]
+fetch: $[placeholder][
+    default 'url "https://example.com"
+    default 'timeout 30
+    return #[url: url timeout: timeout]
+]
+d1: fetch null
+check "default 无属性用默认值" d1\url = "https://example.com"
+d2: fetch .url: "https://a.io" null
+check "default 带属性覆盖" d2\url = "https://a.io"
+check "default 未覆盖仍用默认" d2\timeout = 30
+
+; ---------------------------------------------------------------------------
+; 9. doc string: ;; 数据注释让 info 文档化自定义函数
+; ---------------------------------------------------------------------------
+addThem: function [x :integer y :integer][
+    ;; description: « add two numbers
+    ;; returns: :integer
+    ;; example: {
+    ;;      print addThem 2 3
+    ;; }
+    x + y
+]
+meta: info.get 'addThem
+check "doc string: info.get 有 description" meta\description = "add two numbers"
+ex: info.get 'addThem | get 'example
+check "doc string: example 是块" (type ex) = :block
+errEx: try [ do ex\0 ]
+check "doc string: example 可运行 (do 无错误)" null? errEx
+
+; ---------------------------------------------------------------------------
+; 10. inspect 查值结构
+; ---------------------------------------------------------------------------
+; inspect 本身无返回值 (输出到 stdout), 只验证它可调用不报错
+inspectOk: try [ inspect.compact #[k: 1] ]
+check "inspect.compact 可调用" null? inspectOk
+
+; ---------------------------------------------------------------------------
+; 11. 安全字符串 « ««»»
+; ---------------------------------------------------------------------------
+safe1: « raw "quotes" |pipes| {braces} \no-escape
+check "« 单行安全字符串含引号/管道/花括号" contains? safe1 "quotes"
+check "« 不插值" (contains? safe1 "|pipes|") 
+safe2: ««
+line1
+line2
+»»
+check "««»» 多行安全字符串" (size safe2) > 5
+check "««»» 保留两行" contains? safe2 "line2"
+
+; ---------------------------------------------------------------------------
+; 12. 符号可查 info (别名解析)
+; ---------------------------------------------------------------------------
+aliasMeta: info.get '++
+check "info.get '++ 解析为 append" aliasMeta\name = "append"
+
+; ---------------------------------------------------------------------------
+print "----------------------------------------"
+print ["RESULT:" passed "/" total]
+if passed = total -> print "ALL RULES PASSED"
+if passed <> total -> panic "SOME RULES FAILED"

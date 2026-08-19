@@ -319,6 +319,18 @@ not apply:
   declared `function.inline [..][..]` precisely because they must *define*
   names in the caller's scope.
 
+**Corrected (top-level `.inline` trap, runtime-verified).** `function.inline
+[args][body]` (attribute glued to the `function` word) **silently does not
+execute its body when called at the top level** on 0.10.1-dev+43 — no error,
+the body just never runs (so `let`/assignments never happen). The SAME
+function called from inside another function DOES execute. This is why
+agent-shell.art's `default` helper (declared `function.inline`) works: it is
+always invoked from inside another function body, never at top level. The
+robust, portable form is to put `.inline` after the parameter block:
+`$[args].inline [body]` (or `function [args].inline [body]`) — verified
+working at top level AND nested. When you hit "why didn't my assignment
+happen?" with no error, suspect this trap; prefer `$[..].inline`.
+
 ## Values are passed by reference — `new` copies
 
 **Verified (manual's word of caution).** `b: a` makes `b` refer to the *same*
@@ -472,7 +484,7 @@ agent-shell.art author in issue #2136 and confirmed by the language author
 Nim-`default`-style form:
 
 ```arturo
-default: function.inline [name value][
+default: $[name value].inline [      ; use $[..].inline — see the top-level trap above
     let name ((attr name) ?? value)
 ]
 alias.infix ":" 'default!       ; optional: enables 'x: value form
@@ -492,8 +504,9 @@ How it works, reading right-to-left:
 1. `attr name` — pop the `.name:` attribute off the stack (`null` if absent).
 2. `?? value` — `coalesce`: pick the default when the attribute was `null`.
 3. `let name (...)` — bind the result to the caller's variable. This is why
-   the helper must be `function.inline`: a normal function would keep the
-   binding in its own scope and the caller would never see `x`.
+   the helper must be `.inline`: a normal function would keep the binding in
+   its own scope and the caller would never see `x`. (Write it as
+   `$[name value].inline` — see the top-level `.inline` trap above.)
 4. `alias.infix ":" 'default!` — lets you write `'y: "value1"` sugar, but only
    if you want it; plain `default 'y "value1"` is fine.
 

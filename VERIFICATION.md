@@ -239,6 +239,43 @@ complete + lib/* + tools/*/tool.art+tool.json + skills/*/SKILL.md + useful/*),
 
 ---
 
+# 第九轮:agent-shell 最佳参考入核心 + 规则验证套件 (2026-08-19)
+
+应作者要求: ①把 agent-shell.art 作为最佳实战参考写进 SKILL.md 核心提示;
+②整理全部规则验证代码;③准备 PR。
+
+## 1. agent-shell.art 入核心提示
+
+SKILL.md 新增 **"最佳实战参考: agent-shell.art"** 章节(查字典之后、决策表
+之前): 定位为"真实项目怎么组织的第一参考",含 10 个文件 → 可学模式的对照表
+(`lib/py.art` default helper、`ai.art` 属性式可选参数、`aiutils.art` 动态
+调用、`schema.art` define+method 建 JSON-Schema、`lib/rss.art` read.xml、
+`shell.art` input.repl、`customTools.art` 动态 import、`complete.art` 字典
+数据、`standalone?` 守卫 + doc string 约定),并在核心思想与决策表同步加引用。
+
+## 2. tests/verify-rules.art — 39 条规则验证套件 (全部通过)
+
+把历轮实测的规则整理为可复现测试: 指针模型(7 条)、引用传递/new(2)、
+右到左无优先级(3)、作用域/迭代器/.inline(5)、++字符串(2)、JSON/TOML(4)、
+属性栈 attr/attr?/attrs + placeholder(4)、default helper(3)、doc string(3)、
+inspect(1)、安全字符串(4)、info.get 别名(1) = **39/39 PASS**。
+运行: `./bin/arturo --no-color tests/verify-rules.art`。
+
+## 3. 重大发现: `function.inline` 顶层调用静默失效 (已写入 skill)
+
+构建验证套件时发现本 build 0.10.1-dev+43 的坑:
+- `function.inline [args][body]` 定义的函数,在**顶层直接调用**时函数体
+  **静默不执行**(无报错,`let`/赋值全不生效);
+- 在**另一个函数内调用**时却正常执行——这解释了 agent-shell.art 的
+  `default`(声明为 `function.inline`)为何能工作: 它总在函数内被调用。
+- 可靠写法: `$[args].inline [body]`(属性在参数块后),顶层/嵌套都正常。
+- 已更正 SKILL.md 核心规则、practical-rules.md(作用域节 + default helper 节)、
+  recipes.md 中所有 `function.inline` 示例为 `$[..].inline`,并加"顶层陷阱"说明。
+
+冒烟测试双 build 继续 PASS;新增 verify-rules.art 39/39 PASS。
+
+---
+
 # 第八轮:doc string — 让 info 文档化自定义函数 (2026-08-19)
 
 作者介绍关键工具:函数内用 `;;` 数据注释定义帮助,`info` 即可查到自定义函数

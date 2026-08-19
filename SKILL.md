@@ -39,6 +39,10 @@ Use this skill to produce **version-aware, tested Arturo**, not plausible-lookin
    这就解释了全部"魔法": `sort 'xs` 就地排序、`'xs ++ 9` 追加、`inc 'i` 自增、
    `loop xs 'x` 循环注入变量、`info 'print` 传名字而非执行函数。
 
+> **实战参考**: 要学"真实项目怎么组织"而不只是语法,直接读
+> `github.com/scifx/agent-shell.art`(见下方"最佳实战参考"章节)——本 skill
+> 的多数经验都从这个项目提炼并实测验证。
+
 ### 核心关键字最小集 (the six meta-capabilities)
 
 这套"查字典 + 指针"的心智模型能立起来,靠的是六个元能力关键字——它们是
@@ -183,6 +187,32 @@ correct code: query the keyword → read its `example` → adapt it. For symbol
 lists use `symbols | keys | print`. (When no runtime exists, `./bin/ahelp -s
 TERM` still resolves the doc URL offline.)
 
+## 最佳实战参考: agent-shell.art (查字典之外的第一手范例)
+
+> 学习 Arturo 的实战写法,第一参考是 **`github.com/scifx/agent-shell.art`**
+> ——一个用 Arturo 写的真实 shell-agent 项目(REPL 外壳、LLM API 封装、
+> 工具动态加载、OpenAI JSON-Schema 生成、RSS 解析),是当前 Arturo 社区最
+> 实战派的代码库,也是本 skill 多数"已验证"经验的来源。
+
+读它时按"字典+指针"心智去找这些模式(全部在 `references/practical-rules.md`
+有对应章节):
+
+| 文件 | 可学模式 |
+|---|---|
+| `lib/py.art` | `default` 默认参数 helper + `function.inline` 作用域 + `attr` 读属性 |
+| `ai.art` | 属性式可选参数(`.tools: x .system: y`) + `attr`/`??` 组合 + 动态请求 |
+| `aiutils.art` | `var x\name` 动态调用函数 + `@[fn args] \| get 0` |
+| `utils.art` / `convert_utils.art` | 进制/编码转换工具集 + `to :string .format:'b` |
+| `schema.art` / `fnschema.art` | `define :type` + `method` 构建 OpenAI JSON-Schema |
+| `lib/rss.art` | `read.xml` 遍历 children + `case` 分发 + `try` 容错 |
+| `shell.art` | `input.repl.complete:.history:` 交互 + `try` 执行用户代码 |
+| `customTools.art` / `tools/*` | 运行时动态 `import x!` + `read.json` 加载工具 |
+| `complete.art` | "字典数据"文件: completions/hints 符号表 |
+| 全部模块 | `if standalone?` 主程序守卫 + `;;` doc string 约定 |
+
+Rosetta Code 适合查惯用法,但 **agent-shell.art 是"真实项目怎么组织"的最佳
+参考**——模块怎么拆、工具怎么注册、错误怎么处理、doc string 怎么配。
+
 If Arturo is absent, or one command should provide runtime help plus the official URL:
 
 ```bash
@@ -212,6 +242,7 @@ Copy `config.env.example` to `config.env` for persistent local overrides. `bin/a
 
 | Need | First action | Extra files needed |
 |---|---|---|
+| Real-project idioms / module organization (not just syntax) | read the **agent-shell.art** best-practice reference above, then `references/practical-rules.md` | clone `github.com/scifx/agent-shell.art` |
 | Exact API/signature | `info 'NAME` | none |
 | Exact API but no runtime | `./bin/ahelp NAME` | none; wrapper reads index |
 | Unknown function name/concept | `./bin/ahelp -s TERM` | none |
@@ -285,10 +316,10 @@ mental shifts. Full runtime-verified details live in
 - **Doc strings**: put `;; key: value` data comments at the top of a function body (`description`, `options: [...]`, `returns`, `example: {...}`) and `info 'fn` / `info.get 'fn | get 'example` will document YOUR function exactly like a builtin — your module becomes self-documenting through the same lookup loop.
 - OOP-lite custom types: `define :person [init: method [n][this\n: n] string: method [][~"I am |this\n|"]]`, construct with `to :person ["Ada"]!`, access `this\field`. Magic methods (`string:`, `add:`, `inc:`, ...) overload stdlib behavior.
 - Attributes/options: `sort.descending xs`, `join.with:"," xs`, `request.get url #[]`, `write.json v null`. **Attributes are a stack, not function params** — they float until a function pops them (`.by: "l"` before a `split` works). To read them in your own function: `attr 'name` pops, `attr? 'name` checks, `attrs` copies+clears; the function **must have ≥1 parameter** (use a `placeholder` that callers fill with `null`).
-- **Default/optional parameters** (no Python-style defaults exist): attributes + `??` fallback via the `default` helper — `default: function.inline [name value][let name ((attr name) ?? value)]`, then `default 'x "fallback"` inside the function; callers pass `.x: "a"` or omit it. Full rules in `references/practical-rules.md`.
+- **Default/optional parameters** (no Python-style defaults exist): attributes + `??` fallback via the `default` helper — `default: $[name value].inline [let name ((attr name) ?? value)]`, then `default 'x "fallback"` inside the function; callers pass `.x: "a"` or omit it. Use `$[..].inline`, NOT `function.inline` (top-level calls silently skip the body on this build — see practical-rules.md). Full rules in `references/practical-rules.md`.
 - In-place forms receive a literal/path literal: `append 'xs item`, `'xs ++ item`, `inc 'i`, `sort 'a`.
 - **Values are passed by reference**: `b: a` aliases `a` — use `new a` for an independent copy before mutating.
-- **Blocks have no scope** (variables leak out); iterators restore injected vars; functions isolate; `.inline` makes a function scope-less (`function.inline [..][..]`).
+- **Blocks have no scope** (variables leak out); iterators restore injected vars; functions isolate; `.inline` makes a function scope-less — write `$[args].inline [..]`, NOT `function.inline [args][..]` (top-level calls silently skip the body on this build).
 - Iteration: `map xs 'x -> x*x`, `select xs 'x -> even? x`, `loop xs 'x [print x]`. Sugar: `=>` injects implicit `&` (`map xs => [2 * &]`); `|` pipes reverse prefix calls (`1..5 | map => [2*&] | print`).
 - Integer operands: `/` gives integer-style division; `//` gives floating division—the spelling differs from Python.
 - A trailing `!` is parser/evaluation sugar: it wraps the rest in a `do` block, used after `import "pkg"!`, `to :type [...]!`, and computed calls.

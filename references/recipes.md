@@ -110,8 +110,8 @@ with `coalesce` (`??`). This helper (from issue #2136, author-approved) makes
 it look like Nim's `default`:
 
 ```arturo
-default: function.inline [name value][
-    let name ((attr name) ?? value)
+default: $[name value].inline [     ; NOT function.inline — top-level calls
+    let name ((attr name) ?? value) ; silently skip the body on this build
 ]
 
 ; optional: alias.infix ":" 'default!  → enables 'x: value sugar
@@ -130,8 +130,9 @@ Rules that make it work:
 
 - The function **must have a parameter** (the `placeholder`) or attributes are
   never captured — callers pass `null` for it.
-- The helper must be `function.inline` so its `let` binds in the caller's
-  scope.
+- The helper must be `$[..].inline` so its `let` binds in the caller's scope
+  (use `.inline` after the param block; `function.inline` is unreliable at
+  top level).
 - `attr 'x` pops the attribute (`null` if absent); `attr? 'x` only checks;
   `attrs` returns a copy and clears. Don't mix `attr` and `attrs` in one
   function.
