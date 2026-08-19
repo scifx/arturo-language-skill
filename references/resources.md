@@ -22,6 +22,33 @@ Verified 2026-08-19. Stable release shown by the official site: **0.10.0 “Ariz
 | Nightly Unix installer | https://get.arturo-lang.io/latest |
 | Nightly PowerShell installer | https://get.arturo-lang.io/latest/ps |
 
+## Install the runtime (fastest first)
+
+**Official one-liner (Linux/macOS/FreeBSD/WSL/Git-Bash/MSYS2):**
+
+```bash
+curl -sSL https://get.arturo-lang.io | sh          # latest stable
+curl -sSL https://get.arturo-lang.io/latest | sh   # nightly preview
+```
+
+Verify after installing:
+
+```bash
+arturo --version
+```
+
+Other routes, in order of preference:
+
+1. **Pre-built binaries** — no install needed, just unzip and run. From the official site `https://arturo-lang.io/` (Download) or the GitHub Releases page `https://github.com/arturo-lang/arturo/releases`. Pick by OS + arch (e.g. `arturo-0.10.0-linux-amd64.zip`); nightly binaries live at `https://github.com/arturo-lang/nightly`.
+2. **macOS Homebrew:** `brew install arturo`
+3. **Arch Linux (AUR):** `yay -S arturo` or `paru -S arturo`
+4. **Windows:** `curl -sSL https://get.arturo-lang.io/ps | powershell -c -`, or use the one-liner inside WSL/Git-Bash/MSYS2
+5. **From source (last resort):** clone `https://github.com/arturo-lang/arturo` and run `./build.nims --install` (requires Nim plus GTK/webkit `-dev` libraries for the Full build; use `--mode mini` to avoid the GUI deps). Full instructions: `https://github.com/arturo-lang/arturo/wiki/Building-Arturo`.
+
+> Note: there is no official Debian/Ubuntu `apt install arturo` package. On Debian/Ubuntu prefer the official installer or a pre-built binary. Do not claim `apt install arturo` works on those systems without verifying it in the actual environment.
+
+Arturo's "installation" is effectively just a static binary: download → unzip → place on `$PATH` (e.g. `~/.arturo/bin/arturo` or `/usr/local/bin/arturo`) → run. Set `ARTURO_BIN` if the skill tools cannot auto-detect it from `PATH`.
+
 ## Version-aware paths
 
 The server recognizes these prefixes before the normal site path:

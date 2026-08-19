@@ -14,6 +14,36 @@ metadata:
 
 Use this skill to produce **version-aware, tested Arturo**, not plausible-looking Rebol/Python.
 
+## Install / get the Arturo runtime (only if it is missing)
+
+Check for a runtime first. If `command -v arturo` finds nothing (or `arturo --version` fails), install the **latest stable** with the official one-liner rather than building from source:
+
+```bash
+command -v arturo && arturo --version   # already installed?
+curl -sSL https://get.arturo-lang.io | sh          # latest stable (Linux/macOS/FreeBSD/WSL/Git-Bash/MSYS2)
+# nightly preview instead:
+curl -sSL https://get.arturo-lang.io/latest | sh
+```
+
+Other official routes (use these when the installer is unavailable):
+
+| System | Command / route |
+|---|---|
+| any | Pre-built binaries: official downloads page `https://arturo-lang.io/` → Download, or GitHub Releases `https://github.com/arturo-lang/arturo/releases` (unzip & run; no install needed) |
+| macOS | `brew install arturo` |
+| Arch Linux | AUR: `yay -S arturo` or `paru -S arturo` |
+| Windows | `curl -sSL https://get.arturo-lang.io/ps | powershell -c -` (or WSL/Git-Bash/MSYS2 one-liner) |
+| from source | only as last resort: clone `arturo-lang/arturo`, run `./build.nims --install` (needs Nim, GTK/webkit libs) — see `references/resources.md` |
+
+Then verify and make the runtime discoverable by the skill tools:
+
+```bash
+arturo --version                 # e.g. 0.10.0
+export ARTURO_BIN=$(command -v arturo)   # optional; bin/ahelp also auto-detects from PATH
+```
+
+**If no runtime can be installed in this environment**, do not guess signatures: use the offline path `./bin/ahelp name` and the reference files, and say so when reporting results. Do not invent a signature you cannot run.
+
 ## Start here: zero/one-step lookup
 
 **If the function name is known, do this first—do not open another reference file:**
@@ -105,17 +135,25 @@ Base URL: `https://arturo-lang.io/`. Predicate `?` often becomes `-` in a slug, 
 
 ## Required coding workflow
 
-1. Identify target version/build. Default to stable `0.10.0` if unspecified.
-2. Query every unfamiliar API with `info 'name`; if no runtime, use `./bin/ahelp name`.
-3. Write the smallest runnable `.art` program. Prefer explicit iterator parameters before dense pipe/sugar forms.
-4. Run `arturo --no-color file.art` or `arturo --no-color -e 'CODE'` when a runtime exists.
-5. On failure, trust the diagnostic. Check literal vs resolved word, arity/order, block evaluation, attributes, right-to-left grouping, and build variant.
-6. Read at most the one relevant deep reference unless diagnosing version drift:
+1. Ensure a runtime is available: `command -v arturo`. If missing, install it (see **Install / get the Arturo runtime** above); do not build from source unless that fails.
+2. Identify target version/build. Default to stable `0.10.0` if unspecified; confirm with `arturo --version`.
+3. Query every unfamiliar API with `info 'name`; if no runtime, use `./bin/ahelp name`.
+4. Write the smallest runnable `.art` program. Prefer explicit iterator parameters before dense pipe/sugar forms.
+5. Run `arturo --no-color file.art` or `arturo --no-color -e 'CODE'` when a runtime exists.
+6. On failure, trust the diagnostic. Check literal vs resolved word, arity/order, block evaluation, attributes, right-to-left grouping, and build variant.
+7. Read at most the one relevant deep reference unless diagnosing version drift:
    - syntax → `references/syntax-cheatsheet.md`
    - Python comparison → `references/python-to-arturo.md`
    - task recipes → `references/recipes.md`
    - links/source/package routes → `references/resources.md`
    - compatibility/evidence → `references/verified-tests.md`
+
+**If no runtime is available**, verify signatures and idioms against the official source instead of guessing: clone the matching tag (`git clone --depth 1 --branch v0.10.0 https://github.com/arturo-lang/arturo`), then check the built-in's `builtin "name"` declaration in `src/library/*.nim` and its official examples in `tests/unittests/*.art`. Example checks that already passed against v0.10.0 source:
+
+- `fold` uses a seed via **attribute**, not a positional arg: `fold.seed:0 1..5 [acc x][acc + x]`.
+- Ternary uses `(cond)? -> a -> b`.
+- In-place arithmetic accepts a literal/path-literal (`'total + n`) because `add` accepts `Literal`/`PathLiteral` as `valueA`.
+- `map 1..5 'x -> 2*x`, `select 1..10 'x -> even? x`, `join.with:","`, `sort.descending xs` match their `builtin` declarations.
 
 ## Minimal reliable template
 

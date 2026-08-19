@@ -4,6 +4,15 @@ Agent Skills-compatible Arturo 0.10.0 skill with runtime-first help, an offline 
 
 ## Fastest use
 
+First make sure an Arturo runtime exists (otherwise the skill falls back to its offline index):
+
+```bash
+command -v arturo && arturo --version        # already installed?
+curl -sSL https://get.arturo-lang.io | sh    # official installer, if not
+```
+
+Then use Arturo's built-in help or the wrapper:
+
 ```bash
 # Arturo's own built-in help: no skill script needed
 arturo --no-color -e "info 'read"
