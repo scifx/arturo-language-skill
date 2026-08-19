@@ -105,8 +105,7 @@ The current source tree also has Events, Streams, and Tasks modules; these may a
 
 | Resource | URL | Verified shallow-clone commit |
 |---|---|---|
-| Language v0.10.0 tag (matching-version contracts) | https://github.com/arturo-lang/arturo/tree/v0.10.0 | `8bea10b7306a17bd4538301332edb7ac656ce2b7` |
-| Language current snapshot (drift comparison) | https://github.com/arturo-lang/arturo | `f956424df49b3526044d54d57fa54c94a0cf74aa` |
+| Language/VM/library/tests | https://github.com/arturo-lang/arturo | `f956424df49b3526044d54d57fa54c94a0cf74aa` |
 | Official website/docs generator | https://github.com/arturo-lang/website | `e60be9a6f4775de79f5f60a3de75fc6c87e8f61b` |
 | Official examples corpus | https://github.com/arturo-lang/examples | `60e7b92242e39fccdb764c505bb289e3a1e3d391` |
 | Package registry data | https://github.com/arturo-lang/pkgr.art | `c4f45741ac141721d482316d669a575c6110c69e` |

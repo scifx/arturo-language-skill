@@ -23,18 +23,13 @@ A colon is overloaded by lexical position: `x:` is a label/assignment form; `:in
 
 ## Evaluation model
 
-Arturo generally evaluates right-to-left. Calls are prefix and arity-driven,
-and infix chains associate right-to-left rather than following conventional
-mathematical precedence:
+Arturo generally evaluates right-to-left, while infix operators use precedence. Calls are prefix and arity-driven:
 
 ```arturo
 print square 5              ; print (square 5)
-print 2 + 3 * 4             ; 17: 2 + (3 * 4)
-print 3 * 5 + 2             ; 21: 3 * (5 + 2), not 17
-print (3 * 5) + 2           ; 17: explicit intended grouping
+print 2 + 3 * 4             ; infix precedence applies
+print (2 + 3) * 4           ; make grouping explicit
 ```
-
-Parenthesize mixed infix expressions whenever grouping matters.
 
 Blocks do not execute automatically:
 

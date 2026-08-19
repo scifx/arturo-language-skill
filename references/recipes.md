@@ -16,21 +16,18 @@ arturo --bundle program.art --as myapp
 ## Read arguments and environment
 
 ```arturo
-print arg                 ; raw command-line values as a block
-print arg\0               ; first raw value (when present)
-print args                ; parsed switches/named values as a dictionary
+print args
+print arg\0
 print env
 ```
 
-`arg` and `args` are different zero-argument built-ins. Query `info 'arg`,
-`info 'args`, and `info 'env`; test whether a value exists before indexing and
-do not assume the script name is included.
+Query `info 'arg`, `info 'args`, and `info 'env` because access behavior and script-name inclusion matter.
 
 ## File I/O and paths
 
 ```arturo
 text: read "input.txt"
-write text "output.txt"        ; content first, destination second
+write "output.txt" text
 p: relative "data/input.txt"
 print extract p
 ```
