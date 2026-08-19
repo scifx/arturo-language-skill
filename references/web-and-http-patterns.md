@@ -62,15 +62,12 @@ The buggy `write.directory "data"` fails inside `ensureDir` with
 `}`**, so a pattern that contains `}` will terminate early and the rest leaks
 (commonly as a parse error). Keep `}` out of the pattern or avoid `{...}`.
 
-**Refined (source-verified, corrects overbroad advice).** The parser DOES
-support trailing flags after the closing `/`: `{/pattern/im}` is valid and is
-compiled to inline `(?i)(?m)...`. So:
+**Tested experience — do NOT append flags after the closing `/`.** Despite
+what the parser source looks like, `{/pattern/i}` is **tested not to work** in
+practice. Do not rely on trailing `i`/`m`/`s` after the `/`. Instead:
 
-- Use **inline `(?i)`** inside the pattern for case-insensitivity when you want
-  maximum clarity: `{/(?i)<item[\s\S]+?<\/item>/}`.
-- `{/pattern/i}` also parses (flag `i` → `(?i)`), but many agents have hit
-  confusing failures when the pattern also contained a `}` — that is the real
-  cause, not the trailing `i` itself. Prefer `(?i)` inline to avoid confusion.
+- Use **inline `(?i)`** inside the pattern for case-insensitivity:
+  `{/(?i)<item[\s\S]+?<\/item>/}`.
 - `to :regex` takes a **bare string**, not `/.../` delimiters:
 
 ```arturo

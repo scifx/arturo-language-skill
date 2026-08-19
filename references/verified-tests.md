@@ -232,9 +232,10 @@ checked against v0.10.0 source:
 - `write` args are `content` + `file`; `.directory`/`.json`/`.compact`/`.append`
   are attributes (`Files.nim`).
 - `call` takes `(function, params-block)`; `do` evaluates a block (`Core.nim`).
-- `{/.../}` curly regex ends at the first literal `}` (`parse.nim`); trailing
-  flags `{/pattern/ims}` ARE parsed (become `(?i)`-style inline) — so the real
-  gotcha is a `}` inside the pattern, and `(?i)` inline is the safe idiom.
+- `{/.../}` curly regex ends at the first literal `}` (`parse.nim`). Tested
+  experience: appending flags after the closing `/` (`{/pattern/i}`) is **not
+  reliable** — use inline `(?i)` inside the pattern instead, and keep `}` out
+  of the pattern.
 - `key?` accepts only `:dictionary`/`:object`, not `:store` (`Collections.nim`).
 - No `else` keyword; two-way branch via `(cond)? [a] [b]` (`Core.nim`).
 
