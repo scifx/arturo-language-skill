@@ -62,7 +62,8 @@ case "$QUERY" in
 esac
 
 # Only pass safe Arturo symbol characters into generated code.
-if [ "$OFFLINE" -eq 0 ] && command -v "$ARTURO_BIN" >/dev/null 2>&1; then
+# Search mode (-s) skips the runtime: the term is a fuzzy query, not a symbol.
+if [ "$OFFLINE" -eq 0 ] && [ "$SEARCH" -eq 0 ] && command -v "$ARTURO_BIN" >/dev/null 2>&1; then
     case "$QUERY" in
         *[!A-Za-z0-9_?+*/%\<\>\=\~\|@#\$^.-]*)
             echo "Skipping runtime info: query is not a single safe Arturo symbol." >&2 ;;
@@ -72,7 +73,7 @@ if [ "$OFFLINE" -eq 0 ] && command -v "$ARTURO_BIN" >/dev/null 2>&1; then
             echo "--- Official documentation index ---"
             ;;
     esac
-elif [ "$OFFLINE" -eq 0 ]; then
+elif [ "$OFFLINE" -eq 0 ] && [ "$SEARCH" -eq 0 ]; then
     echo "Arturo runtime not found ($ARTURO_BIN); using offline index." >&2
 fi
 

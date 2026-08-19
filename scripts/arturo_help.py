@@ -39,6 +39,15 @@ def search(query: str):
         return sorted(found, key=lambda r: rank[r["name"]])
     return [r for r in allrows if q in r["name"].lower() or q in r["module"].lower()]
 
+def resolve_runtime(env_runtime: str) -> str:
+    """$ARTURO_BIN wins; otherwise prefer the runtime bundled in this repo."""
+    if os.environ.get("ARTURO_BIN"):
+        return os.environ["ARTURO_BIN"]
+    bundled = ROOT / "bin" / "arturo"
+    if bundled.is_file() and os.access(bundled, os.X_OK):
+        return str(bundled)
+    return env_runtime
+
 def runtime_info(symbol: str, runtime: str) -> int:
     exe = shutil.which(runtime) if not pathlib.Path(runtime).exists() else runtime
     if not exe:
@@ -53,8 +62,8 @@ def main() -> int:
     p.add_argument("query", help="function, operator alias, module, or concept")
     p.add_argument("--latest", action="store_true", help="print latest/nightly URL")
     p.add_argument("--info", action="store_true", help="also run runtime `info`")
-    p.add_argument("--runtime", default=os.environ.get("ARTURO_BIN", "arturo"),
-                   help="runtime executable (default: $ARTURO_BIN or PATH lookup for arturo)")
+    p.add_argument("--runtime", default=resolve_runtime(os.environ.get("ARTURO_BIN", "arturo")),
+                   help="runtime executable (default: $ARTURO_BIN, else bundled bin/arturo, else PATH arturo)")
     p.add_argument("--limit", type=int, default=20)
     a = p.parse_args()
     found = search(a.query)

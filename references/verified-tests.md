@@ -1,12 +1,12 @@
 # Verification, compatibility, and known limitations
 
-Verification date: **2026-08-19**. Test platform: Linux amd64 sandbox. Stable version under test: **Arturo 0.10.0 “Arizona Bark”**. This document distinguishes facts directly executed in the sandbox from documentation/link checks and areas that were not exercised. It is deliberately explicit so an agent does not convert a small smoke test into a claim that every library feature was tested.
+Verification date: **2026-08-19**. Test platform: Linux amd64 sandbox. Primary runtime under test: **the bundled `bin/arturo` / `bin/arturo-mini` (0.10.1-dev+43, built from `scifx/Arturo-Future`)**; the official stable release **Arturo 0.10.0 “Arizona Bark”** is retained as a documentation/link baseline. This document distinguishes facts directly executed in the sandbox from documentation/link checks and areas that were not exercised. It is deliberately explicit so an agent does not convert a small smoke test into a claim that every library feature was tested.
 
 ## 1. Evidence levels
 
 Use these labels when interpreting this skill:
 
-- **Runtime-verified**: executed against the official Linux amd64 Mini 0.10.0 binary in this workspace.
+- **Runtime-verified**: executed against the bundled `bin/arturo` / `bin/arturo-mini` binaries in this workspace (earlier 0.10.0 Mini-verification notes are kept as historical baseline).
 - **Link-verified**: fetched over HTTPS and returned the recorded HTTP status on the verification date.
 - **Source-verified**: checked against shallow clones of official repositories at the commits listed in `resources.md`.
 - **Documentation-derived**: stated by official documentation but not necessarily executable in Mini.
@@ -294,7 +294,7 @@ dependency report shows no missing libs on Debian 12); `--check-only` works
 on both bundled binaries. `bin/ahelp` auto-detects the bundled `bin/arturo`
 and returns real runtime `info` output.
 
-The shell helper requires POSIX `sh` and `awk`, auto-detects `arturo`, accepts `ARTURO_BIN`, and does not require Python. The Python helper uses `python3` through its environment shebang and accepts an explicit runtime path. Neither helper downloads or executes remote documentation. A native PowerShell counterpart exists at `bin/ahelp.ps1`; it was source-reviewed but not executed in this Linux sandbox because `pwsh` was unavailable.
+The shell helper requires POSIX `sh` and `awk`, auto-detects the bundled `bin/arturo` (falling back to `$ARTURO_BIN`/PATH), skips the runtime in `-s` search mode, and does not require Python. The Python helper uses `python3` through its environment shebang, auto-detects the bundled `bin/arturo`, and accepts an explicit `--runtime` path. Neither helper downloads or executes remote documentation. A native PowerShell counterpart exists at `bin/ahelp.ps1` (same bundled-binary default and `-Search` behavior); it was source-reviewed but not executed in this Linux sandbox because `pwsh` was unavailable.
 
 The MCP server was smoke-tested with newline-delimited JSON-RPC requests for `initialize`, `tools/list`, and `tools/call`. It is optional. MCP client configuration varies; clients normally require absolute paths. The MCP server's index tools work without Arturo, while runtime `arturo_info` degrades to index-only output if `ARTURO_BIN` cannot be found.
 

@@ -4,13 +4,13 @@ This is a real, local stdio MCP server; it is not Arturo source syntax. It uses 
 
 Tools:
 
-- `arturo_info(symbol, channel?)` — invokes `info 'symbol` when `ARTURO_BIN` is available and adds the official URL.
+- `arturo_info(symbol, channel?)` — invokes `info 'symbol` using the runtime bundled in this repo (`bin/arturo`), or `$ARTURO_BIN` when set, and adds the official URL.
 - `arturo_search(query, limit?)` — offline name/module search.
 - `arturo_doc_url(symbol, channel?)` — stable/latest URL resolution with known-404 fallback.
 
 ## Client configuration
 
-MCP clients normally require absolute paths. Replace both placeholders:
+MCP clients normally require absolute paths. Replace the placeholder:
 
 ```json
 {
@@ -19,14 +19,16 @@ MCP clients normally require absolute paths. Replace both placeholders:
       "command": "python3",
       "args": ["/ABSOLUTE/PATH/arturo-language-skill/mcp/server.py"],
       "env": {
-        "ARTURO_BIN": "/ABSOLUTE/PATH/TO/arturo"
+        "ARTURO_BIN": "/ABSOLUTE/PATH/arturo-language-skill/bin/arturo"
       }
     }
   }
 }
 ```
 
-`ARTURO_BIN` is optional. Without it, index and URL tools still work and `arturo_info` returns index-only information.
+`ARTURO_BIN` is optional — without it the server auto-detects the bundled
+`bin/arturo` next to the repo; if neither exists, index and URL tools still
+work and `arturo_info` returns index-only information.
 
 ## Manual protocol smoke test
 

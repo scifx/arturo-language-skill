@@ -38,8 +38,8 @@ possible path from clone to working Arturo. Checksums: see
 **Runtime dependencies (in this sandbox, Debian 12):** the bundled Full build
 needs the system runtimes `libgmp.so.10`, `libmpfr.so.6`, `libssl.so.3`,
 `libcrypto.so.3` (all present by default on Debian 12+/Ubuntu 22.04+/Fedora
-39+/Arch; `apt-get install -y libgmp10 libmpfr6 libssl3` if missing) and
-dlopens `libsqlite3.so.0`. The Mini build has **zero** extra dependencies.
+39+/Arch; `apt-get install -y libgmp10 libmpfr6 libssl3 libsqlite3-0` if
+missing) and dlopens `libsqlite3.so.0`. The Mini build has **zero** extra dependencies.
 `scripts/get-arturo.sh --check-only bin/arturo` prints a live missing-lib
 report; the full matrix is in `references/runtime-dependencies.md`.
 
@@ -58,7 +58,7 @@ Then verify and make the runtime discoverable by the skill tools:
 
 ```bash
 ./bin/arturo --version                 # e.g. 0.10.1-dev+43 (bundled binary)
-export ARTURO_BIN="$PWD/bin/arturo"    # optional; bin/ahelp also auto-detects from PATH
+export ARTURO_BIN="$PWD/bin/arturo"    # optional; bin/ahelp auto-detects the bundled runtime itself
 ```
 
 **If no runtime can be run in this environment**, do not guess signatures: use the offline path `./bin/ahelp name` and the reference files, and say so when reporting results. Do not invent a signature you cannot run.
@@ -68,8 +68,9 @@ export ARTURO_BIN="$PWD/bin/arturo"    # optional; bin/ahelp also auto-detects f
 **If the function name is known, do this first—do not open another reference file:**
 
 ```bash
-arturo --no-color -e "info 'read"       # zero dependency beyond Arturo itself
-arturo --no-color -e "info '++"         # aliases/operators also work
+./bin/arturo --no-color -e "info 'read"    # bundled runtime; zero other dependencies
+./bin/arturo --no-color -e "info '++"      # aliases/operators also work
+# if bin/arturo is on PATH, plain `arturo` works too
 ```
 
 Inside the REPL or an `.art` file:
@@ -106,11 +107,11 @@ python3 scripts/arturo_help.py read
 Executable overrides are environment variables, not hard-coded paths:
 
 ```bash
-ARTURO_BIN=/opt/arturo/bin/arturo ./bin/ahelp read
-PYTHON_BIN=python3 ./bin/ahelp read
+ARTURO_BIN=/opt/arturo/bin/arturo ./bin/ahelp read   # explicit runtime override
+python3 scripts/arturo_help.py read --info --runtime ./bin/arturo
 ```
 
-Copy `config.env.example` to `config.env` for persistent local overrides. Never assume `/usr/bin/arturo` or that the command is named `python`.
+Copy `config.env.example` to `config.env` for persistent local overrides. `bin/ahelp` does **not** use Python; `PYTHON_BIN` is only a hint for the optional Python helper. Never assume `/usr/bin/arturo` or that the command is named `python`.
 
 ### Lookup decision table
 
@@ -172,11 +173,11 @@ Base URL: `https://arturo-lang.io/`. Predicate `?` often becomes `-` in a slug, 
 
 ## Required coding workflow
 
-1. Ensure a runtime is available: `command -v arturo`. If missing, install it (see **Install / get the Arturo runtime** above); do not build from source unless that fails.
-2. Identify target version/build. Default to stable `0.10.0` if unspecified; confirm with `arturo --version`.
+1. Ensure a runtime is available: `ls bin/arturo` or `command -v arturo`. The bundled binary is preferred (see **Get the Arturo runtime** above); do not build from source unless that fails.
+2. Identify target version/build. Default to the bundled `0.10.1-dev+43` if unspecified; confirm with `./bin/arturo --version`.
 3. Query every unfamiliar API with `info 'name`; if no runtime, use `./bin/ahelp name`.
 4. Write the smallest runnable `.art` program. Prefer explicit iterator parameters before dense pipe/sugar forms.
-5. Run `arturo --no-color file.art` or `arturo --no-color -e 'CODE'` when a runtime exists.
+5. Run `./bin/arturo --no-color file.art` or `./bin/arturo --no-color -e 'CODE'` when a runtime exists.
 6. On failure, trust the diagnostic. Check literal vs resolved word, arity/order, block evaluation, attributes, right-to-left grouping, and build variant.
 7. Read at most the one relevant deep reference unless diagnosing version drift:
    - syntax → `references/syntax-cheatsheet.md`
@@ -189,7 +190,7 @@ Base URL: `https://arturo-lang.io/`. Predicate `?` often becomes `-` in a slug, 
    - runtime binary/deps (bundled bin/arturo, missing libs) → `references/runtime-dependencies.md`
    - compatibility/evidence → `references/verified-tests.md`
 
-**If no runtime is available**, verify signatures and idioms against the official source instead of guessing: clone the matching tag (`git clone --depth 1 --branch v0.10.0 https://github.com/arturo-lang/arturo`), then check the built-in's `builtin "name"` declaration in `src/library/*.nim` and its official examples in `tests/unittests/*.art`. Example checks that already passed against v0.10.0 source:
+**If no runtime is available**, verify signatures and idioms against source instead of guessing: the bundled binaries come from `scifx/Arturo-Future` (fork of `arturo-lang/arturo`); clone it (`git clone --depth 1 https://github.com/scifx/Arturo-Future`), then check the built-in's `builtin "name"` declaration in `src/library/*.nim` and its official examples in `tests/unittests/*.art`. Example checks that already passed against source:
 
 - `fold` uses a seed via **attribute**, not a positional arg: `fold.seed:0 1..5 [acc x][acc + x]`.
 - Ternary uses `(cond)? -> a -> b`.

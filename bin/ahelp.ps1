@@ -4,7 +4,9 @@ param(
     [switch]$Latest,
     [switch]$Offline,
     [int]$Limit = 20,
-    [string]$ArturoBin = $(if ($env:ARTURO_BIN) { $env:ARTURO_BIN } else { "arturo" })
+    [string]$ArturoBin = $(if ($env:ARTURO_BIN) { $env:ARTURO_BIN }
+        elseif (Test-Path (Join-Path $PSScriptRoot "arturo")) { Join-Path $PSScriptRoot "arturo" }
+        else { "arturo" })
 )
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
@@ -18,7 +20,7 @@ $Aliases = @{
 }
 $Lookup = if ($Aliases.ContainsKey($Query)) { $Aliases[$Query] } else { $Query }
 
-if (-not $Offline) {
+if (-not $Offline -and -not $Search) {
     $cmd = Get-Command $ArturoBin -ErrorAction SilentlyContinue
     if ($cmd -and $Query -match '^[A-Za-z0-9_?+*/%<>=!~|@#$^.-]+$') {
         Write-Output "--- Arturo runtime: info '$Query ---"

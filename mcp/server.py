@@ -39,7 +39,12 @@ def arturo_info(args):
     allowed = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_?+*/%<>=!~|@#$^.-")
     if any(ch not in allowed for ch in symbol):
         raise ValueError("symbol contains unsupported characters")
-    runtime = os.environ.get("ARTURO_BIN", "arturo")
+    # Prefer the runtime bundled in this repo (bin/arturo); env override wins.
+    bundled = ROOT / "bin" / "arturo"
+    if not os.environ.get("ARTURO_BIN") and bundled.is_file() and os.access(bundled, os.X_OK):
+        runtime = str(bundled)
+    else:
+        runtime = os.environ.get("ARTURO_BIN", "arturo")
     exe = shutil.which(runtime) if not pathlib.Path(runtime).exists() else runtime
     chunks = []
     if exe:
