@@ -23,13 +23,19 @@ A colon is overloaded by lexical position: `x:` is a label/assignment form; `:in
 
 ## Evaluation model
 
-Arturo generally evaluates right-to-left, while infix operators use precedence. Calls are prefix and arity-driven:
+Arturo evaluates **right-to-left** and has **no operator precedence at all** —
+infix operators (`+` `*` `=` ...) are just aliases for prefix functions, so
+they group right-to-left too. Calls are prefix and arity-driven:
 
 ```arturo
 print square 5              ; print (square 5)
-print 2 + 3 * 4             ; infix precedence applies
-print (2 + 3) * 4           ; make grouping explicit
+print 2 * 3 + 4             ; 14 — right-to-left: 2 * (3 + 4), NOT (2*3)+4
+print (2 * 3) + 4           ; 10 — parenthesize to force the grouping you want
 ```
+
+There is no "standard math precedence" to fall back on: `2 * 3 + 4` is **14**
+in Arturo, exactly like `2 * (3 + 4)`. When a mixed infix chain's result
+matters, parenthesize it.
 
 Blocks do not execute automatically:
 
@@ -128,6 +134,42 @@ print ["Hello" name]         ; evaluates block and space-joins
 print upper s
 print split.words "a b"
 print join.with:"," ["a" "b"]
+```
+
+`++` is `append`, so string concatenation works **only between strings**:
+`"a" ++ "b"` → `"ab"`, but `"a" ++ 0` produces a broken value (silently in
+`print`, and `type` of it can hang this build). Convert first:
+`(to :string 0) ++ "a"`, or use `~"|0|a"`, or `print ["a" 0]`.
+
+## Scope and in-place modification
+
+```arturo
+; blocks have NO scope: variables leak out
+do [ x: 1 ]              ; x is visible after this block
+print x                  ; 1
+
+; iterators protect outer bindings, and restore them after the loop
+loop.with:'i ["a" "b"] 'x [ print [i x] ]   ; 0 a / 1 b
+print i                  ; ERROR — i is gone after the loop
+
+; functions DO have their own scope; .inline removes it
+helper: function [n][
+    localVar: n * 2      ; invisible outside
+    return localVar
+]
+helper: $[n].inline [ leaked: n ]  ; .inline = scope-less
+print leaked             ; visible
+
+; values are passed/assigned BY REFERENCE — `new` copies
+a: [1 2 3]
+b: a
+' b ++ 9                  ; a is also [1 2 3 9] now
+c: new a                  ; deep-ish copy
+' c ++ 9                  ; a unchanged
+
+; in-place mutation via literal: many built-ins accept 'name
+sort 'a                   ; sorts a in place (no re-assignment needed)
+' total + 5               ; in-place add
 ```
 
 ## Collections and paths

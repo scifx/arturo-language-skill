@@ -102,6 +102,12 @@ for the Full build, none for Mini) are in `references/runtime-dependencies.md`.
 - **Verified.** A word (`x`) resolves a value; a literal (`'x`) passes the word
   itself — required by many iterator bindings, in-place mutations, and
   references.
+- **Corrected (whitespace matters around `'`).** The literal marker must be
+  glued to the word: `'x ++ 9` is a literal append, but `' x ++ 9` (space
+  after the quote) starts a **char literal** that swallows everything until the
+  next `'`, producing errors like "Quoted string contains newline". Always
+  write `'name` with no space — this is why real code writes `'msgs ++ ...`,
+  not `' msgs ++ ...`.
 - **Verified.** Attributes / method variants are `.name` suffixes that select a
   variant of the keyword and may consume extra arguments:
   ```arturo
@@ -163,6 +169,76 @@ form — `{:}` is the verbatim string opener and `{::}` is simply an *empty*
 verbatim string (used as an empty line in the official examples). There is no
 `{::}` special-cased literal. For regex use `{/.../}`, not `{::}`.
 
+## String concatenation: `++` is `append`, strings only
+
+**Corrected (important, runtime-verified on 0.10.1-dev+43).** `++` is the
+infix alias of `append`, NOT a general "string + anything" operator:
+
+```arturo
+print "a" ++ "b"          ; "ab" — fine, both strings
+print "a" ++ 0            ; ⚠️ DANGEROUS on this build
+```
+
+Mixed operands misbehave in two ways:
+
+- In `print "a" ++ 0`, `append` **consumes both operands and returns
+  `:nothing`**, so the following `print` finds an empty stack and you get a
+  confusing **`Cannot perform: print — Not enough parameters`** error. The
+  real problem is the `++`, not `print`.
+- `r: "a" ++ 0` then `print type r` **hangs this build's VM** (reproducible;
+  SIGKILL required). The appended value is a broken `:string` whose type
+  inspection never returns.
+
+Correct ways to build strings from mixed values:
+
+```arturo
+print (to :string 0) ++ "a"   ; convert first (official manual's own fix)
+print ~"|0|a"                 ; interpolation
+print ["a" 0]                 ; block print = space-joined
+```
+
+Rule of thumb: **`++` only ever joins two strings.** Anything else goes
+through `to :string`, `~"..."`, or `print [ ... ]`. (The official manual gives
+the same example: `to :string 3 ++ "..."` fails; `(to :string 3) ++ "..."`
+works.)
+
+## Scope: blocks leak, iterators restore, functions isolate, `.inline` removes
+
+**Verified against the official manual.** Traditional scoping intuition does
+not apply:
+
+- **Blocks have no scope.** A variable created inside `do [...]`/`if [...]` is
+  visible afterwards; re-assigning an outer variable inside a block persists.
+- **Iterators are the exception:** the *injected* loop variables are visible
+  only inside the loop body, and any outer binding with the same name is
+  restored afterwards.
+- **Functions have their own scope.** Variables created inside a function are
+  local; outer variables are readable; changes do not leak out. The `.inline`
+  attribute makes a function scope-less (its assignments leak to the caller's
+  scope), and `.export:` exports a specific symbol.
+- Real-world pattern (agent-shell.art's `lib/py.art`): helper functions are
+  declared `function.inline [..][..]` precisely because they must *define*
+  names in the caller's scope.
+
+## Values are passed by reference — `new` copies
+
+**Verified (manual's word of caution).** `b: a` makes `b` refer to the *same*
+value as `a`; mutating one mutates both:
+
+```arturo
+a: [1 2 3]
+b: a
+append 'b 9               ; a is now [1 2 3 9] too!
+c: new a                  ; c is a copy
+append 'c 9               ; a unchanged
+```
+
+Use `new` whenever you assign a mutable value (block/dictionary/string) and
+plan to mutate one of the two independently. This is a top-3 "why did my
+variable change?" cause for people coming from Python (where `b = a` on a list
+*also* aliases, but Arturo does it for *all* mutable values, including when
+passing into functions).
+
 ## Template strings can execute code — be careful
 
 **Verified (important).** `render` (the `~"..."` template) does **not** just
@@ -196,6 +272,117 @@ the message. Pattern from the official `try` example:
     -> print err      ; error happened
     -> print val      ; success path
 ```
+
+## Misleading diagnostics: "Not enough parameters: X"
+
+**Runtime-verified.** When a line fails with `Cannot perform: X — Not enough
+parameters` but `X` clearly received its arguments, the cause is usually **one
+expression to the left** that *consumed* operands and returned `:nothing`
+instead of a value. Common triggers:
+
+- `++` with mismatched types (see the string-concat section above):
+  `print "a" ++ 0` reports `print / Not enough parameters`, not an append
+  error.
+- A helper that returns nothing on one code path (e.g. an `if` with no
+  `else`-branch value).
+
+Debug by simplifying the line: bind the suspect expression to a variable first
+and print its `type` — but beware that `type` of the broken `++` value itself
+can hang this build (see above).
+
+## Renaming functions: avoid `let x (var y)!`; use a wrapper
+
+**Corrected (runtime-verified).** The `alias` builtin and the idiom
+`别名: $[x y] [let x (var y)!]` seen in some projects do **not** reliably
+produce a callable new name on this build:
+
+- `alias "bar" foo` then `bar 21` → `Identifier not found: bar`.
+- `let 'bar (var 'foo)!` then `bar 21` → binds something that does not call
+  correctly ("Not enough parameters: bar"), because `!` wraps the rest in a
+  `do` block and the binding semantics get subtle.
+
+The robust, boring way that always works:
+
+```arturo
+foo: $[x][ x * 2 ]
+bar: $[x] -> foo x        ; wrapper — reliable rename
+print bar 21              ; 42
+```
+
+If you only need an alias *inside one expression*, just re-assign the value:
+`bar: foo` then call `bar` (functions are values). But for long-lived
+renames across the file, the one-line wrapper above is the safe form.
+
+## Attribute-based default parameters (project idiom, verified)
+
+agent-shell.art's `lib/py.art` defines a clever default-argument idiom:
+attributes are optional named parameters; `attr` reads them off the stack;
+`??` provides the fallback; `.inline` makes the `let` visible in the caller:
+
+```arturo
+default: function.inline [name value][
+    let name ((attr name) ?? value)
+]
+
+py: $[pycode][
+    default 'pypy false        ; if caller passed .pypy: true, use it
+    default 'file null         ; else the default
+    ; ...
+]
+py .pypy: true "print(1)"      ; call with attribute = optional named arg
+```
+
+Read it right-to-left: `(attr name) ?? value` = "the `.name:` attribute if it
+was passed, otherwise `value`". This is the idiomatic Arturo way to emulate
+keyword/default arguments — no `def f(x=1, y=2)` equivalent exists.
+
+## The `standalone?` main-guard idiom (project pattern)
+
+Files that double as libraries and programs wrap their entry code in
+`if standalone? [...]` (a reflection builtin — true when the file is the main
+script, false when it is imported):
+
+```arturo
+; every module in agent-shell.art ends with:
+if standalone? [
+    print ai "你是谁？"
+]
+```
+
+This is the Arturo equivalent of Python's `if __name__ == "__main__":` — use
+it so imported modules don't run demo code.
+
+## Shell out with structured output: `execute.code`
+
+**Runtime-verified.** `execute "cmd"` returns the raw string; the `.code`
+attribute returns a **dictionary** with `\output` and `\code`:
+
+```arturo
+r: execute.code "echo hello"
+print r\output            ; hello
+print r\code              ; exit code
+```
+
+agent-shell.art's shell tool uses exactly this, plus `ensure.that:` to
+validate the result:
+
+```arturo
+data: execute.code c
+ensure.that:"data.output为空" -> not? null? data\output
+```
+
+## Dynamic import: `import x!` with a variable path
+
+**Runtime-verified.** `import` accepts a computed path, not only string
+literals. agent-shell.art loads tools at runtime by building paths and
+importing each one:
+
+```arturo
+p: "./dynmod.art"
+import p!                  ; works — dynamic path
+```
+
+(Also `import "./{relative/file}!"` and `import.lean "pkg"!` for isolation.)
 
 ## Learning from real code
 

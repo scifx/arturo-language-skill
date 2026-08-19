@@ -124,6 +124,7 @@ Copy `config.env.example` to `config.env` for persistent local overrides. `bin/a
 | Gotchas / idioms / correct usage | `references/practical-rules.md` (string forms, infix right-to-left, `import ...!`, template safety, error handling) | one |
 | Runtime binary / dependencies / distro compatibility | `bin/arturo` (bundled) + `references/runtime-dependencies.md` | none |
 | 15-minute tour vs Python (learn fast) | `references/in-a-nutshell-vs-python.md` | one |
+| Mind-shift from a traditional language (scope, by-ref, `new`, `++`, JSON, diagnostics) | the **思维模式转换** section above + `references/practical-rules.md` | at most two |
 | HTTP / JSON / `serve` / file-state (real project) | `references/web-and-http-patterns.md` | one |
 | Python translation | `references/python-to-arturo.md` | one |
 | Version/build discrepancy | `references/verified-tests.md` | one |
@@ -133,22 +134,58 @@ Copy `config.env.example` to `config.env` for persistent local overrides. `bin/a
 `info.get 'NAME | get 'example` shows the official runnable example block.
 See `references/practical-rules.md`.
 
+## 思维模式转换: from traditional languages to Arturo (5 minutes)
+
+The fastest way to stop writing "Python with `:`" is to internalize these six
+mental shifts. Full runtime-verified details live in
+`references/practical-rules.md` and `references/in-a-nutshell-vs-python.md`
+(step-by-step Python ↔ Arturo side-by-side).
+
+1. **No syntax, just values.** No commas, no mandatory parens, no indentation,
+   no reserved keywords. Code is a stream of words/labels/symbols/values;
+   blocks `[...]` are inert data until executed (`do`, iterators, etc.).
+2. **Calls are prefix and arity-driven; evaluation is right-to-left; there is
+   NO operator precedence.** `2 * 3 + 4` is **14** (= `2 * (3+4)`), and
+   `print square 5` means `print (square 5)`. Parenthesize any mixed infix
+   chain whose grouping matters.
+3. **`=` compares, `:` binds.** `+ * ++ ? ??` etc. are just *infix aliases*
+   of prefix functions (`add`, `mul`, `append`, `switch`, `coalesce`).
+   `++` concatenates **strings only**; for mixed values convert first
+   (`(to :string n) ++ "x"`) or use `~"|n|x"` / `print [n "x"]`.
+4. **In-place mutation via literals; values are by-reference.** `sort 'a`,
+   `'xs ++ item`, `inc 'i` mutate the original. `b: a` aliases `a` — use
+   `new` to copy before mutating independently.
+5. **Blocks have no scope; functions isolate; `.inline` opens them up.**
+   Iterator variables are restored after the loop. Errors are values:
+   `err: try [...]`, then `error? err`; `err\kind`/`err\msg`.
+6. **OOP is opt-in and data-light:** `define :type [init: method [...]...]`,
+   `to :type [...]!`, `this\field`, magic methods (`string:`, `add:`, ...).
+   JSON/TOML are first-class data: `read.json s|file`, `write.json v null`,
+   `read.toml f`.
+
 ## Core rules (enough for most tasks)
 
 - Binding is `x: 3`; equality is `x = 3`; inequality is `x <> 3`.
-- Calls are prefix and arity-driven: `print square 5`. Evaluation is normally **right-to-left**, except infix operators. Parenthesize ambiguity.
+- Calls are prefix and arity-driven: `print square 5`. Evaluation is
+  **right-to-left with no operator precedence** — infix operators are just
+  aliases of prefix functions, so `2 * 3 + 4` is `2 * (3 + 4)` = **14**.
+  Parenthesize mixed infix chains.
 - Blocks `[ ... ]` are values/deferred code. `do block` executes one; `@block`/`array block` evaluates its items into an array.
 - A word (`x`) resolves a value. A literal (`'x`) passes the word itself—required by many iterator bindings and in-place operations.
 - Strings are `"text"`; interpolation is `~"Hello |name|"`.
 - Regex literals use the curly form `{/.../}` in this build (e.g. `match.once "xabcy" {/abc/}`). Plain `/.../` is **division**, and passing a mis-parsed `/.../` expression to `match`/`contains?` can hang the runtime — verify with `info 'match` and test small regexes before relying on them. Put flags inline (`{/(?i)abc/}`), not after the closing `/`.
 - Blocks and dictionaries differ: `[1 2 3]` vs `#[name: "Ada"]`.
 - Index/member access uses backslash and is zero-based: `xs\0`, `user\name`, `xs\[i]`.
-- Functions: `square: function [x :integer][x*x]`; call with `square 4`.
-- Attributes/options: `sort.descending xs`, `join.with:"," xs`.
-- In-place forms receive a literal/path literal: `append 'xs item`, `'xs ++ item`, `inc 'i`.
-- Iteration: `map xs 'x -> x*x`, `select xs 'x -> even? x`, `loop xs 'x [print x]`.
+- Functions: `square: function [x :integer][x*x]`; call with `square 4`. `$` aliases `function`: `square: $[x][x*x]`.
+- OOP-lite custom types: `define :person [init: method [n][this\n: n] string: method [][~"I am |this\n|"]]`, construct with `to :person ["Ada"]!`, access `this\field`. Magic methods (`string:`, `add:`, `inc:`, ...) overload stdlib behavior.
+- Attributes/options: `sort.descending xs`, `join.with:"," xs`, `request.get url #[]`, `write.json v null`. Attributes double as optional named params: `attr 'name` reads `.name:` off the stack, `?? default` fills the fallback.
+- In-place forms receive a literal/path literal: `append 'xs item`, `'xs ++ item`, `inc 'i`, `sort 'a`.
+- **Values are passed by reference**: `b: a` aliases `a` — use `new a` for an independent copy before mutating.
+- **Blocks have no scope** (variables leak out); iterators restore injected vars; functions isolate; `.inline` makes a function scope-less (`function.inline [..][..]`).
+- Iteration: `map xs 'x -> x*x`, `select xs 'x -> even? x`, `loop xs 'x [print x]`. Sugar: `=>` injects implicit `&` (`map xs => [2 * &]`); `|` pipes reverse prefix calls (`1..5 | map => [2*&] | print`).
 - Integer operands: `/` gives integer-style division; `//` gives floating division—the spelling differs from Python.
-- A trailing `!` is parser/evaluation sugar used especially in `import "pkg"!`.
+- A trailing `!` is parser/evaluation sugar: it wraps the rest in a `do` block, used after `import "pkg"!`, `to :type [...]!`, and computed calls.
+- JSON/TOML as data: `read.json` parses a JSON string *or* file path; `write.json value null` returns a JSON string (and `write.json value "file"` writes); `read.toml` reads config. Do **not** use `parse.json` — `parse` has no `.json` attribute in this build (it silently returns the input string).
 - Full and Mini builds differ. Mini lacks UI, HTTPS, database, package-manager, parser, and arbitrary-precision features listed in official build docs.
 - **The whole language is discoverable locally.** Every keyword lives in the standard library; `symbols | keys | print` lists them all, and `info 'x` / `info.get 'x | get 'example` reveal each one's usage, options, returns, **and a runnable example**. With those three, you can look up and write almost any Arturo program without the internet — so query before you guess.
 - **Never invent a standard-library signature. Query `info` first.**

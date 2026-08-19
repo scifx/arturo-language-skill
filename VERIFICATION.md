@@ -91,3 +91,38 @@ print encode "arturo"        ; base64
 - **可用性: 高**。运行时、帮助工具、MCP、离线索引、参考文档五条主路径全部实测通过;两个捆绑二进制零下载即可运行,冒烟测试双 build 通过。
 - 建议按 P1 修复更新后的 SKILL.md/cheatsheet 使用 (本次已一并提交)。
 - 生产使用提醒: 遵循 skill 自身规则——任何陌生 API 先 `info 'NAME`;正则一律 `{/.../}`;JSON 走 `read.json`;Mini 构建避免大整数常量。
+
+---
+
+# 第二轮:对照官方手册 + agent-shell.art 实战项目修正 (2026-08-19)
+
+对照来源: 官方语言手册 `arturo-lang.io/documentation/language`(全部 7 段)+
+实战项目 `github.com/scifx/agent-shell.art`(2541 行 .art,含 OOP/HTTP/JSON/
+工具动态加载/REPL 外壳)+ 项目自带符号表。**所有新声明均在本仓库捆绑运行时
+0.10.1-dev+43 上重新实测通过**;冒烟测试双 build 依旧 PASS。
+
+## 修正的错误 (原有文档确实写错的)
+
+| # | 文件 | 错误 | 修正 |
+|---|---|---|---|
+| 1 | `SKILL.md`、`syntax-cheatsheet.md` | "Evaluation is right-to-left, **except infix operators**" / "infix operators use precedence" | 手册明确**没有任何优先级规则**,中缀只是前缀函数别名,同样右到左结合。`2 * 3 + 4` = **14**(= `2*(3+4)`),不是 10 |
+| 2 | `web-and-http-patterns.md` | scaffold 用 `render.json items` | `render` 在本 build 只有 `.once`/`.template` 属性,**`render.json` 不存在**(Type Error)。改为 `write.json items null` |
+| 3 | `recipes.md` JSON 段 | "do not invent json.loads equivalents"——只警示不给方案 | 补上实测可用的等价物:`read.json`(字符串或文件)、`write.json v null`(返回 JSON 字符串)、`write.json v file`、`read.toml`;并警示 `parse.json` 是静默空操作(返回原字符串) |
+
+## 新增的实测经验 (提炼自项目 + 手册,全部运行验证)
+
+- **思维模式转换 6 条**(SKILL.md 新章节): ① 无语法只有值 ② 右到左、无优先级 ③ `=`比较/`:`绑定/符号即别名 ④ 字面量就地修改+引用传递 ⑤ 块无作用域/迭代器恢复/函数隔离/`.inline` ⑥ OOP-lite+JSON/TOML 一等公民。
+- **`++` 是 `append`,只能拼字符串**: `"a" ++ "b"` ✅;`"a" ++ 0` 在 `print` 场景**静默吞参数**并给出误导性 "Not enough parameters: print",在 `type` 场景**挂起 build**(实测复现,需 SIGKILL)。修正了 in-a-nutshell 的 concat 行与各文件的拼接示例。
+- **值按引用传递,`new` 复制**: `b: a` 是别名(`append 'b 9` 会改到 `a`);`c: new a` 才独立。
+- **作用域模型**: 块内变量泄漏到块外;迭代器注入变量循环后恢复;函数自带作用域,`.inline` 消除(项目 `lib/py.art` 的 `function.inline` 用法)。
+- **误导性诊断**: "Cannot perform: X — Not enough parameters" 但 X 明明有参数时,向左找——前面的表达式吞了操作数返回了 `:nothing`(典型是 `++` 类型不匹配)。
+- **函数重命名**: 项目 `别名: $[x y][let x (var y)!]` 模式与本 build 的 `alias` 内建**都不产生可调用绑定**(实测 `Identifier not found`/绑定异常),且项目从未调用这些别名。可靠写法是包装器 `bar: $[x] -> foo x`。
+- **`attr` + `??` 默认参数惯用法**(`lib/py.art`): `default: function.inline [name value][let name ((attr name) ?? value)]`,调用 `.pypy: true` 即传可选命名参数——Arturo 版关键字参数。
+- **`standalone?` 主程序守卫**(Python `__main__` 等价物)、**`execute.code`** 结构化返回(`\output`/`\code`)、**动态 `import x!`**。
+- **`'x` 与 `' x` 的空白坑**: 引号后空格会把 `'` 变成字符字面量起始,吞掉后续代码直到下一个 `'`(报 "Quoted string contains newline")。
+
+## 项目代码在本捆绑运行时上的兼容性抽查
+
+- 可独立运行: `utils.art`、`convert_utils.art`、`lib/sortutils.art`、`schema.art`、`fnschema.art`、`prompt.art`、`aiutils.art`、`complete.art` ✅
+- 实测通过的项目模式: `define`/`method`/`this` OOP 与 `write.json \obj null` 序列化、`read.toml` 配置、`request.get url #[] | get 'body` 与 `request.post .headers: h .json url data`(本地 HTTP 服务器验证)、`ensure.that:`、`key?`、`loop dict [k v]`、`execute.code`、动态工具加载。
+- 注意: 项目 `shell.art` 引用的 `symbols\hints`/`symbols\hits` 在本 build 的 `symbols` 字典中**不存在**(Index Error)——该项目面向的运行时更新;本 skill 无需适配,但已确认不是 skill 文档问题。
