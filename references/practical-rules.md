@@ -23,6 +23,15 @@ the official example(s) — extremely useful for writing correct code locally.
 
 ## Installation
 
+**Preferred:** the maintainer's prebuilt binary repo `scifx/arturo-bin`
+(sha256-verified, with a missing-lib report):
+
+```bash
+scripts/get-arturo.sh
+```
+
+Fallback official installer:
+
 ```bash
 curl -sSL https://get.arturo-lang.io | sh      # latest stable
 curl -sSL https://get.arturo-lang.io/latest | sh  # nightly preview
@@ -31,7 +40,9 @@ curl -sSL https://get.arturo-lang.io/latest | sh  # nightly preview
 **Verified.** Pre-built binaries are also downloadable from the site/Releases
 (no install needed, just unzip and run). macOS: `brew install arturo`; Arch
 (AUR): `yay -S arturo`. There is **no** official Debian/Ubuntu `apt install
-arturo`.
+arturo`. Dependency requirements of the scifx/arturo-bin binary (glibc ≥ 2.38,
+libstdc++ ≥ GLIBCXX_3.4.32, GUI libs for the Full build) are in
+`references/runtime-dependencies.md`.
 
 ## Language model (right-to-left, arity-driven)
 

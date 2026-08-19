@@ -4,12 +4,14 @@ Agent Skills-compatible Arturo 0.10.0 skill with runtime-first help, an offline 
 
 ## Fastest use
 
-First make sure an Arturo runtime exists (otherwise the skill falls back to its offline index):
+First make sure an Arturo runtime exists (otherwise the skill falls back to its offline index). The **preferred source is the maintainer's prebuilt-binary repo `scifx/arturo-bin`**:
 
 ```bash
 command -v arturo && arturo --version        # already installed?
-curl -sSL https://get.arturo-lang.io | sh    # official installer, if not
+scripts/get-arturo.sh                        # fetch from scifx/arturo-bin + sha256 verify + dep check
 ```
+
+(`scripts/get-arturo.sh` tries git clone → codeload → raw URL → GitHub API blob, verifies the pinned SHA-256, and reports any missing local libraries with per-distro install hints; the full dependency spec is in `references/runtime-dependencies.md`. Official installer fallback: `curl -sSL https://get.arturo-lang.io | sh`.)
 
 Then use Arturo's built-in help or the wrapper:
 
