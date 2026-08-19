@@ -222,39 +222,29 @@ and the official in-a-nutshell documented outputs. Spot-checked equivalences
 `and?`/`or?` short-circuit, string upper/lower/split/join/contains, list
 map/select/filter/unique/slice/repeat, and 0-based backslash indexing.
 
-## 9d. Web/HTTP contract source verification
+## 9d. Web/HTTP project-pattern source verification
 
-The contracts retained in `references/web-and-http-patterns.md` were checked
-against the v0.10.0 built-in declarations and official examples:
+The real-world web/RSS patterns in `references/web-and-http-patterns.md` were
+checked against v0.10.0 source:
 
-- Normal file `write` arguments are `content` + `file`; `.directory`, `.json`,
-  `.compact`, and `.append` are attributes (`Files.nim`). Official v0.10.0 code
-  uses `write.json null value` for in-memory JSON encoding.
-- `read.json` decodes JSON; `parse` parses Arturo source/data syntax
-  (`Files.nim`, `Core.nim`).
-- `request` arguments are `url` + `data` and its declared return is
-  `:dictionary` or `null` (`Net.nim`).
-- `serve` takes a routes block/function and `.port:` is an attribute. Its
-  official example documents both string responses and dictionaries with
-  `body`, `status`, and `headers` (`Net.nim`).
-- `call` takes `(function, params-block)` and `do` evaluates a block
-  (`Core.nim`). Ordinary assigned calls such as `r: request url data` also
-  appear in official examples; the previous blanket warning about bare calls
-  was removed.
-- `{/.../}` ends at the first literal `}` (`parse.nim`); inline regex flags are
-  preferred over unverified trailing-flag syntax.
-- No `else` keyword exists; use `switch`/`?` for two-way flow (`Core.nim`).
+- `request` args are `url` + `data` (`Net.nim`); `serve` handlers return
+  strings and `.port:` is an attribute (`Net.nim`).
+- `write` args are `content` + `file`; `.directory`/`.json`/`.compact`/`.append`
+  are attributes (`Files.nim`).
+- `call` takes `(function, params-block)`; `do` evaluates a block (`Core.nim`).
+- `{/.../}` curly regex ends at the first literal `}` (`parse.nim`). Tested
+  experience: appending flags after the closing `/` (`{/pattern/i}`) is **not
+  reliable** — use inline `(?i)` inside the pattern instead, and keep `}` out
+  of the pattern.
+- `key?` accepts only `:dictionary`/`:object`, not `:store` (`Collections.nim`).
+- No `else` keyword; two-way branch via `(cond)? [a] [b]` (`Core.nim`).
 
-Live HTTP serving, HTTPS/TLS, and deployment behavior were not exercised by the
-deterministic Mini smoke suite. They must be re-tested on the target Full build.
+Some items (e.g. `do [fn arg]` vs bare-call misbinding, `++ @[feed]` not
+splicing a dict, mini-HTTPs `request` returning `null`, serve returning a dict
+→ 500) are behavioral and marked "project experience"; re-verify on the target
+build with `info 'name` and a minimal test before relying on them.
 
 ## 10. Helper verification
-
-`tests/test_tooling.py` now regression-tests index shape/statuses, shell exact and
-alias lookups, latest-to-stable fallback, clean no-match behavior, the Python
-helper, and MCP initialize/list/call behavior. `tests/run.sh` runs these checks
-and automatically adds the Arturo output-diff smoke test when a runtime is
-available.
 
 The following helper paths were exercised:
 

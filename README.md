@@ -34,18 +34,4 @@ python3 scripts/arturo_help.py map
 
 Optional MCP integration is documented in `mcp/README.md`.
 
-## Verify the skill
-
-```bash
-./tests/run.sh
-```
-
-The test runner always checks the offline index, shell/Python helpers, and MCP
-protocol. If `arturo` (or `$ARTURO_BIN`) is available, it also runs the
-deterministic Arturo smoke suite and diffs its output.
-
-The entry point for agents is `SKILL.md`. It is deliberately distilled to
-contracts supported by runtime evidence or matching-version official
-source/examples. Stable documentation links were verified 521/521; this proves
-reachability, not behavior. Exact evidence and limitations are in
-`references/verified-tests.md`.
+The entry point for agents is `SKILL.md`. Stable documentation links were verified 521/521; exact evidence and test scope are in `references/verified-tests.md`.
